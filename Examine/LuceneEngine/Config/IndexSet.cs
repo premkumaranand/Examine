@@ -17,12 +17,12 @@ namespace Examine.LuceneEngine.Config
         /// <value>
         /// The name of the set.
         /// </value>
-        [ConfigurationProperty("SetName", IsRequired = true, IsKey = true)]
+        [ConfigurationProperty("setName", IsRequired = true, IsKey = true)]
         public string SetName
         {
             get
             {
-                return (string)this["SetName"];
+                return (string)this["setName"];
             }
         }
 
@@ -35,13 +35,13 @@ namespace Examine.LuceneEngine.Config
         /// <remarks>
         /// This can be set at runtime but will not be persisted to the configuration file
         /// </remarks>
-        [ConfigurationProperty("IndexPath", IsRequired = true, IsKey = false)]
+        [ConfigurationProperty("indexPath", IsRequired = true, IsKey = false)]
         public string IndexPath
         {
             get
             {
                 if (string.IsNullOrEmpty(_indexPath))
-                    _indexPath = (string)this["IndexPath"];
+                    _indexPath = (string)this["indexPath"];
 
                 return _indexPath;
             }
@@ -75,12 +75,12 @@ namespace Examine.LuceneEngine.Config
         /// The collection of node types to index, if not specified, all node types will be indexed (apart from the ones specified in the ExcludeNodeTypes collection).
         /// </summary>
         [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("IncludeItemTypes", IsDefaultCollection = false, IsRequired = false)]
+        [ConfigurationProperty("includeItemTypes", IsDefaultCollection = false, IsRequired = false)]
         public IndexFieldCollection IncludeItemTypes
         {
             get
             {
-                return (IndexFieldCollection)base["IncludeItemTypes"];
+                return (IndexFieldCollection)base["includeItemTypes"];
             }
         }
 
@@ -88,12 +88,12 @@ namespace Examine.LuceneEngine.Config
         /// The collection of node types to not index. If specified, these node types will not be indexed.
         /// </summary>
         [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("ExcludeItemTypes", IsDefaultCollection = false, IsRequired = false)]
+        [ConfigurationProperty("excludeItemTypes", IsDefaultCollection = false, IsRequired = false)]
         public IndexFieldCollection ExcludeItemTypes
         {
             get
             {
-                return (IndexFieldCollection)base["ExcludeItemTypes"];
+                return (IndexFieldCollection)base["excludeItemTypes"];
             }
         }
 
@@ -104,12 +104,12 @@ namespace Examine.LuceneEngine.Config
         /// If this property is not specified, or if it's an empty collection, the default user fields will be all user fields defined in Umbraco
         /// </remarks>
         [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("Fields", IsDefaultCollection = false, IsRequired = false)]
+        [ConfigurationProperty("fields", IsDefaultCollection = false, IsRequired = false)]
         public IndexFieldCollection Fields
         {
             get
             {
-                return (IndexFieldCollection)base["Fields"];
+                return (IndexFieldCollection)base["fields"];
             }
         }
 

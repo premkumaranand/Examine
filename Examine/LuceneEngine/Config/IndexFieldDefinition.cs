@@ -11,42 +11,42 @@ namespace Examine.LuceneEngine.Config
     ///</summary>
     public sealed class IndexFieldDefinition : ConfigurationElement, IIndexFieldDefinition
     {
-        [ConfigurationProperty("Name", IsRequired = true)]
+        [ConfigurationProperty("name", IsRequired = true)]
         public string Name
         {
             get
             {
-                return (string)this["Name"];
+                return (string)this["name"];
             }
             set
             {
-                this["Name"] = value;
+                this["name"] = value;
             }
         }
 
-        [ConfigurationProperty("EnableSorting", IsRequired = false)]
+        [ConfigurationProperty("enableSorting", IsRequired = false)]
         public bool EnableSorting
         {
             get
             {
-                return (bool)this["EnableSorting"];
+                return (bool)this["enableSorting"];
             }
             set
             {
-                this["EnableSorting"] = value;
+                this["enableSorting"] = value;
             }
         }
 
-        [ConfigurationProperty("DataType", IsRequired = false, DefaultValue = "String")]
+        [ConfigurationProperty("dataType", IsRequired = false, DefaultValue = "String")]
         public string DataType
         {
             get
             {
-                return (string)this["DataType"];
+                return (string)this["dataType"];
             }
             set
             {
-                this["DataType"] = value;
+                this["dataType"] = value;
             }
         }
 

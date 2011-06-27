@@ -13,53 +13,33 @@ namespace Examine.Config
     {
         private const string SectionName = "Examine";
 
-        #region Singleton definition
-
-        private static readonly ExamineSettings m_Examine;
-        private ExamineSettings() { }
-        static ExamineSettings()
-        {
-            m_Examine = ConfigurationManager.GetSection(SectionName) as ExamineSettings;
-
-        }
         /// <summary>
         /// Gets the instance of the Examine settings.
         /// </summary>
         /// <value>The instance.</value>
-        public static ExamineSettings Instance
+        public static ExamineSettings GetDefaultInstance()
         {
-            get { return m_Examine; }
+            return ConfigurationManager.GetSection(SectionName) as ExamineSettings;
         }
-
-        #endregion
-
-        ///<summary>
-        /// Whether or not to rebuild non-existing indexes when the application starts
-        ///</summary>
-        [ConfigurationProperty("RebuildOnAppStart", DefaultValue = true)]
-        public bool RebuildOnAppStart
-        {
-            get { return (bool)base["RebuildOnAppStart"]; }
-        }       
 
         /// <summary>
         /// Gets the search providers.
         /// </summary>
         /// <value>The search providers.</value>
-        [ConfigurationProperty("ExamineSearchProviders")]
+        [ConfigurationProperty("searchProviders")]
         public SearchProvidersSection SearchProviders
         {
-            get { return (SearchProvidersSection)base["ExamineSearchProviders"]; }
+            get { return (SearchProvidersSection)base["searchProviders"]; }
         }
 
         /// <summary>
         /// Gets the index providers.
         /// </summary>
         /// <value>The index providers.</value>
-        [ConfigurationProperty("ExamineIndexProviders")]
+        [ConfigurationProperty("indexProviders")]
         public IndexProvidersSection IndexProviders
         {
-            get { return (IndexProvidersSection)base["ExamineIndexProviders"]; }
+            get { return (IndexProvidersSection)base["indexProviders"]; }
         }
 
     }

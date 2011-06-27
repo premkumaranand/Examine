@@ -16,21 +16,21 @@ namespace Examine.LuceneEngine.Config
 
         #region Singleton definition
 
-        private static readonly IndexSets m_IndexSets;
+        private static readonly IndexSets _indexSets;
         protected IndexSets() { }
         static IndexSets()
         {
-            m_IndexSets = ConfigurationManager.GetSection(SectionName) as IndexSets;     
+            _indexSets = ConfigurationManager.GetSection(SectionName) as IndexSets;     
   
         }
         public static IndexSets Instance
         {
-            get { return m_IndexSets; }
+            get { return _indexSets; }
         }
 
         #endregion
 
-        private const string SectionName = "ExamineLuceneIndexSets";
+        private const string SectionName = "examineLuceneIndexSets";
 
         [ConfigurationCollection(typeof(IndexSetCollection))]
         [ConfigurationProperty("", IsDefaultCollection = true, IsRequired = true)]

@@ -16,10 +16,17 @@ namespace Examine
     ///</summary>
     public class ExamineManager : ISearcher, IIndexer
     {
+        private readonly ExamineSettings _settings;
 
-        private ExamineManager()
+        public ExamineManager()
         {
+            _settings = ExamineSettings.GetDefaultInstance();
             LoadProviders();
+        }
+
+        public ExamineManager(ExamineSettings settings)
+        {
+            _settings = settings;
         }
 
         private readonly object _lock = new object();
@@ -52,14 +59,14 @@ namespace Examine
                         // Load registered providers and point _provider to the default provider	
 
                         IndexProviderCollection = new IndexProviderCollection();
-                        ProvidersHelper.InstantiateProviders(ExamineSettings.Instance.IndexProviders.Providers, IndexProviderCollection, typeof(BaseIndexProvider));
+                        ProvidersHelper.InstantiateProviders(_settings.IndexProviders.Providers, IndexProviderCollection, typeof(BaseIndexProvider));
 
                         SearchProviderCollection = new SearchProviderCollection();
-                        ProvidersHelper.InstantiateProviders(ExamineSettings.Instance.SearchProviders.Providers, SearchProviderCollection, typeof(BaseSearchProvider));
+                        ProvidersHelper.InstantiateProviders(_settings.SearchProviders.Providers, SearchProviderCollection, typeof(BaseSearchProvider));
 
                         //set the default
-                        if (!string.IsNullOrEmpty(ExamineSettings.Instance.SearchProviders.DefaultProvider))
-                             DefaultSearchProvider = SearchProviderCollection[ExamineSettings.Instance.SearchProviders.DefaultProvider];
+                        if (!string.IsNullOrEmpty(_settings.SearchProviders.DefaultProvider))
+                             DefaultSearchProvider = SearchProviderCollection[_settings.SearchProviders.DefaultProvider];
 
                         if (DefaultSearchProvider == null)
                             throw new ProviderException("Unable to load default search provider");
@@ -68,35 +75,6 @@ namespace Examine
                 }
             }
         }
-
-
-        #region ISearcher Members
-
-        /// <summary>
-        /// Uses the default provider specified to search
-        /// </summary>
-        /// <param name="searchParameters"></param>
-        /// <returns></returns>
-        /// <remarks>This is just a wrapper for the default provider</remarks>
-        public ISearchResults Search(ISearchCriteria searchParameters)
-        {
-            return DefaultSearchProvider.Search(searchParameters);
-        }
-
-        /// <summary>
-        /// Uses the default provider specified to search
-        /// </summary>
-        /// <param name="searchText"></param>
-        /// <param name="maxResults"></param>
-        /// <param name="useWildcards"></param>
-        /// <returns></returns>
-        public ISearchResults Search(string searchText, bool useWildcards)
-        {
-            return DefaultSearchProvider.Search(searchText, useWildcards);
-        }
-
-
-        #endregion
 
         /// <summary>
         /// Reindex nodes for the providers specified
@@ -172,6 +150,28 @@ namespace Examine
 
 
         #region ISearcher Members
+
+        /// <summary>
+        /// Uses the default provider specified to search
+        /// </summary>
+        /// <param name="searchParameters"></param>
+        /// <returns></returns>
+        /// <remarks>This is just a wrapper for the default provider</remarks>
+        public ISearchResults Search(ISearchCriteria searchParameters)
+        {
+            return DefaultSearchProvider.Search(searchParameters);
+        }
+
+        /// <summary>
+        /// Uses the default provider specified to search
+        /// </summary>
+        /// <param name="searchText"></param>
+        /// <param name="useWildcards"></param>
+        /// <returns></returns>
+        public ISearchResults Search(string searchText, bool useWildcards)
+        {
+            return DefaultSearchProvider.Search(searchText, useWildcards);
+        }
 
         /// <summary>
         /// Creates search criteria that defaults to IndexType.Any and BooleanOperation.And

@@ -28,7 +28,7 @@ namespace Examine.LuceneEngine.Config
         {
             get
             {
-                return "IndexSet";
+                return "indexSet";
             }
         }
         #endregion
@@ -36,7 +36,6 @@ namespace Examine.LuceneEngine.Config
         /// <summary>
         /// Default property for accessing Image Sets
         /// </summary>
-        /// <param name="setType"></param>
         /// <returns></returns>
         public new IndexSet this[string setName]
         {

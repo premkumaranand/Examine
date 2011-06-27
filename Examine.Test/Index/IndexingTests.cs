@@ -127,7 +127,7 @@ namespace Examine.Test.Index
                         ItemType = "test"
                     });
             }
-
+            
             //ACT
 
             //add them all at once
