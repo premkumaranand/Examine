@@ -30,8 +30,8 @@ namespace Examine.Providers
         /// Forces a particular XML node to be reindexed
         /// </summary>
         /// <param name="item">XML node to reindex</param>
-        /// <param name="type">Type of index to use</param>
-        public abstract void ReIndexNode(IndexItem item, string type);
+        /// <param name="category">Type of index to use</param>
+        public abstract void ReIndexNode(IndexItem item, string category);
 
         /// <summary>
         /// Deletes a node from the index

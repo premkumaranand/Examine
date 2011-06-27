@@ -14,7 +14,7 @@ namespace Examine
         /// <param name="id">The id.</param>
         /// <param name="fields">The fields.</param>
         /// <param name="indexType">Type of the index.</param>
-        public IndexingNodeEventArgs(string id, Dictionary<string, string> fields, string indexType)
+        public IndexingNodeEventArgs(string id, IDictionary<string, string> fields, string indexType)
         {
             Id = id;
             Fields = fields;
@@ -29,7 +29,7 @@ namespace Examine
         /// <summary>
         /// Gets the fields.
         /// </summary>
-        public Dictionary<string, string> Fields { get; private set; }
+        public IDictionary<string, string> Fields { get; private set; }
 
         /// <summary>
         /// Gets the type of the index.

@@ -19,22 +19,22 @@ namespace Examine
         ///<param name="fields"></param>
         ///<param name="includeNodeTypes"></param>
         ///<param name="excludeNodeTypes"></param>
-        ///<param name="parentNodeId"></param>
         public IndexCriteria(IEnumerable<IIndexFieldDefinition> fields, 
             IEnumerable<string> includeNodeTypes, 
-            IEnumerable<string> excludeNodeTypes, 
-            string parentNodeId)
+            IEnumerable<string> excludeNodeTypes)
         {
             if (fields == null) fields = Enumerable.Empty<IIndexFieldDefinition>();
             if (includeNodeTypes == null) includeNodeTypes = Enumerable.Empty<string>();
             if (excludeNodeTypes == null) excludeNodeTypes = Enumerable.Empty<string>();
-            if (parentNodeId == null) parentNodeId = string.Empty;
-
+            
             Fields = fields.ToList();
             IncludeItemTypes = includeNodeTypes;
             ExcludeItemTypes = excludeNodeTypes;
         }
 
+        /// <summary>
+        /// Gets the fields.
+        /// </summary>
         public IEnumerable<IIndexFieldDefinition> Fields { get; internal set; }
 
         /// <summary>

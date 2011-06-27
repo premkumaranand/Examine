@@ -9,6 +9,8 @@ using System.Text;
 namespace Examine.LuceneEngine
 {
 
+
+
     /// <summary>
     /// A Dictionary that is Xml serializable
     /// </summary>

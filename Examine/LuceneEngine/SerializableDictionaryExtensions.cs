@@ -25,7 +25,7 @@ namespace Examine.LuceneEngine
         ///<typeparam name="TKey"></typeparam>
         ///<typeparam name="TValue"></typeparam>
         ///<returns></returns>
-        public static SerializableDictionary<TKey, TValue> ToSerializableDictionary<TKey, TValue>(this Dictionary<TKey, TValue> d)
+        public static SerializableDictionary<TKey, TValue> ToSerializableDictionary<TKey, TValue>(this IDictionary<TKey, TValue> d)
         {
             var sd = new SerializableDictionary<TKey, TValue>();
             d.ToList().ForEach(x => sd.Add(x.Key, x.Value));
@@ -66,7 +66,7 @@ namespace Examine.LuceneEngine
         ///</summary>
         ///<param name="buffer"></param>
         ///<param name="fi"></param>
-        public static void SaveToDisk<TKey, TValue>(this IEnumerable<Dictionary<TKey, TValue>> buffer, FileInfo fi)
+        public static void SaveToDisk<TKey, TValue>(this IEnumerable<IDictionary<TKey, TValue>> buffer, FileInfo fi)
         {
             var output = "";
             foreach(var item in buffer)
@@ -116,7 +116,7 @@ namespace Examine.LuceneEngine
         ///<param name="fi"></param>
         ///<typeparam name="TKey"></typeparam>
         ///<typeparam name="TValue"></typeparam>
-        public static void ReadFromDisk<TKey, TValue>(this List<Dictionary<TKey, TValue>> buffer, FileInfo fi)
+        public static void ReadFromDisk<TKey, TValue>(this List<IDictionary<TKey, TValue>> buffer, FileInfo fi)
         {
             XDocument xDoc;
             buffer.ReadFromDisk(fi, out xDoc);
@@ -130,7 +130,7 @@ namespace Examine.LuceneEngine
         ///<param name="xDoc"></param>
         ///<typeparam name="TKey"></typeparam>
         ///<typeparam name="TValue"></typeparam>
-        public static void ReadFromDisk<TKey, TValue>(this List<Dictionary<TKey, TValue>> buffer, FileInfo fi, out XDocument xDoc)
+        public static void ReadFromDisk<TKey, TValue>(this IList<IDictionary<TKey, TValue>> buffer, FileInfo fi, out XDocument xDoc)
         {
             buffer.Clear();
             using (var fs = new FileStream(fi.FullName, FileMode.Open))
@@ -175,7 +175,7 @@ namespace Examine.LuceneEngine
         ///<param name="fi"></param>
         ///<typeparam name="TKey"></typeparam>
         ///<typeparam name="TValue"></typeparam>
-        public static void SaveToDisk<TKey, TValue>(this Dictionary<TKey, TValue> d, FileInfo fi)
+        public static void SaveToDisk<TKey, TValue>(this IDictionary<TKey, TValue> d, FileInfo fi)
         {
             d.ToSerializableDictionary().SaveToDisk(fi);
         }

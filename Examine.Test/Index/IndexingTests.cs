@@ -79,9 +79,9 @@ namespace Examine.Test.Index
             _currentFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
             _currentFolder.Create();
             var indexer = new LuceneIndexer(
-                new IndexCriteria(fields, null, null, string.Empty),
+                new IndexCriteria(fields, null, null),
                 _currentFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), false);
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), SynchronizationType.SingleThreaded);
             return indexer;
         }
     }

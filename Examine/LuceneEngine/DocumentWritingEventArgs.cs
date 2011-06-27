@@ -20,7 +20,7 @@ namespace Examine.LuceneEngine
         /// <summary>
         /// Fields of the indexer
         /// </summary>
-        public Dictionary<string, string> Fields { get; private set; }
+        public IDictionary<string, string> Fields { get; private set; }
         /// <summary>
         /// NodeId of the document being written
         /// </summary>
@@ -32,7 +32,7 @@ namespace Examine.LuceneEngine
         /// <param name="id"></param>
         /// <param name="d"></param>
         /// <param name="fields"></param>
-        public DocumentWritingEventArgs(string id, Document d, Dictionary<string, string> fields)
+        public DocumentWritingEventArgs(string id, Document d, IDictionary<string, string> fields)
         {
             this.Id = id;
             this.Document = d;

@@ -19,7 +19,7 @@ namespace Examine
         /// <param name="id">The node id.</param>
         /// <param name="fields">The fields.</param>
         /// <param name="indexType">Type of the index.</param>
-        public IndexingNodeDataEventArgs(IndexItem item, string id, Dictionary<string, string> fields, string indexType)
+        public IndexingNodeDataEventArgs(IndexItem item, string id, IDictionary<string, string> fields, string indexType)
             : base(id, fields, indexType)
         {
             this.Item = item;

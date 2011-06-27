@@ -49,7 +49,7 @@ namespace Examine.Test
             //assert
             file.Refresh();
             Assert.IsTrue(file.Exists);
-            var result = new List<Dictionary<string, string>>();
+            var result = new List<IDictionary<string, string>>();
             result.ReadFromDisk(file);
 
             Assert.AreEqual(target[0]["Name"], result[0]["Name"]);
