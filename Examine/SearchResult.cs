@@ -4,15 +4,41 @@ using System.Linq;
 
 namespace Examine
 {
+    /// <summary>
+    /// Represents a search result
+    /// </summary>
     public class SearchResult
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SearchResult"/> class.
+        /// </summary>
         public SearchResult()
         {
             this.Fields = new Dictionary<string, string>();
         }
 
-        public int Id { get; set; }
+        /// <summary>
+        /// Gets or sets the id.
+        /// </summary>
+        /// <value>
+        /// The id.
+        /// </value>
+        public string Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the score.
+        /// </summary>
+        /// <value>
+        /// The score.
+        /// </value>
         public float Score { get; set; }
+
+        /// <summary>
+        /// Gets or sets the fields.
+        /// </summary>
+        /// <value>
+        /// The fields.
+        /// </value>
         public IDictionary<string, string> Fields { get; protected set; }
 
         /// <summary>

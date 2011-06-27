@@ -9,13 +9,13 @@ namespace Examine
     public class IndexedNodesEventArgs : EventArgs
     {
 
-        public IndexedNodesEventArgs(IIndexCriteria indexData, IEnumerable<IndexedNode> nodes)
+        public IndexedNodesEventArgs(IndexCriteria indexData, IEnumerable<IndexedNode> nodes)
         {
             this.IndexData = indexData;
             this.Nodes = nodes;
         }
 
-        public IIndexCriteria IndexData { get; private set; }
+        public IndexCriteria IndexData { get; private set; }
         public IEnumerable<IndexedNode> Nodes { get; private set; }
 
     }

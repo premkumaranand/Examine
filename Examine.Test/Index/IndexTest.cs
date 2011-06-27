@@ -122,7 +122,7 @@ namespace Examine.Test.Index
         public void Index_Move_Media_From_Non_Indexable_To_Indexable_ParentID()
         {
             //change parent id to 1116
-            ((IndexCriteria)_indexer.IndexerData).ParentNodeId = 1116;
+            ((IndexCriteria)_indexer.IndexerData).ParentId = 1116;
 
             //rebuild so it excludes children unless they are under 1116
             _indexer.RebuildIndex();
@@ -149,7 +149,7 @@ namespace Examine.Test.Index
             _indexer.ReIndexNode(node, IndexTypes.Media);
 
             //RESET the parent id
-            ((IndexCriteria)_indexer.IndexerData).ParentNodeId = null;
+            ((IndexCriteria)_indexer.IndexerData).ParentId = null;
 
             //now ensure it's deleted
             var newResults = _searcher.Search(_searcher.CreateSearchCriteria().Id(2112).Compile());
@@ -174,7 +174,7 @@ namespace Examine.Test.Index
             _indexer.ReIndexNode(node, IndexTypes.Media);
 
             //change the parent node id to be the one it used to exist under
-            ((IndexCriteria)_indexer.IndexerData).ParentNodeId = 2222;
+            ((IndexCriteria)_indexer.IndexerData).ParentId = 2222;
 
             //now mimic moving the node underneath 1116 instead of 2222
             node.SetAttributeValue("path", currPath.Replace("2222", "1116"));
@@ -184,7 +184,7 @@ namespace Examine.Test.Index
             _indexer.ReIndexNode(node, IndexTypes.Media);
 
             //RESET the parent id
-            ((IndexCriteria)_indexer.IndexerData).ParentNodeId = null;
+            ((IndexCriteria)_indexer.IndexerData).ParentId = null;
 
             //now ensure it's deleted
             var results = _searcher.Search(_searcher.CreateSearchCriteria().Id(2112).Compile());

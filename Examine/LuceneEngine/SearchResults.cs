@@ -136,7 +136,7 @@ namespace Examine.LuceneEngine
             }
             var sr = new SearchResult()
             {
-                Id = int.Parse(id),
+                Id = id,
                 Score = score
             };
 

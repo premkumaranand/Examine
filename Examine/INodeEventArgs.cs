@@ -3,6 +3,6 @@ namespace Examine
 {
     public interface INodeEventArgs
     {
-        int NodeId { get; }
+        string Id { get; }
     }
 }

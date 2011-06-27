@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Examine.Test
 {
-    public class TestIndexField : IIndexField
+    public class TestIndexFieldDefinition : IIndexField
     {
         public string Name { get; set; }
         public bool EnableSorting { get; set; }

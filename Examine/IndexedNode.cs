@@ -12,7 +12,20 @@ namespace Examine
     /// </summary>
     public class IndexedNode
     {
-        public int NodeId { get; set; }
+        /// <summary>
+        /// Gets or sets the id.
+        /// </summary>
+        /// <value>
+        /// The id.
+        /// </value>
+        public string Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the type.
+        /// </summary>
+        /// <value>
+        /// The type.
+        /// </value>
         public string Type { get; set; }
 
         /// <summary>
@@ -22,7 +35,7 @@ namespace Examine
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            return ((IndexedNode)obj).NodeId == this.NodeId;
+            return ((IndexedNode)obj).Id == this.Id;
         }
 
         /// <summary>
@@ -31,7 +44,7 @@ namespace Examine
         /// <returns></returns>
         public override int GetHashCode()
         {
-            return this.NodeId.GetHashCode();
+            return this.Id.GetHashCode();
         }
     }
 }

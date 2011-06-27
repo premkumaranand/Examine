@@ -24,17 +24,17 @@ namespace Examine.LuceneEngine
         /// <summary>
         /// NodeId of the document being written
         /// </summary>
-        public int NodeId { get; private set; }
+        public string Id { get; private set; }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="nodeId"></param>
+        /// <param name="id"></param>
         /// <param name="d"></param>
         /// <param name="fields"></param>
-        public DocumentWritingEventArgs(int nodeId, Document d, Dictionary<string, string> fields)
+        public DocumentWritingEventArgs(string id, Document d, Dictionary<string, string> fields)
         {
-            this.NodeId = nodeId;
+            this.Id = id;
             this.Document = d;
             this.Fields = fields;
         }

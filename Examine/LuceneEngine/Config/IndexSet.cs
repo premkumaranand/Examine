@@ -5,9 +5,18 @@ using System.Web.Hosting;
 
 namespace Examine.LuceneEngine.Config
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public sealed class IndexSet : ConfigurationElement
     {
 
+        /// <summary>
+        /// Gets the name of the set.
+        /// </summary>
+        /// <value>
+        /// The name of the set.
+        /// </value>
         [ConfigurationProperty("SetName", IsRequired = true, IsKey = true)]
         public string SetName
         {
@@ -17,7 +26,7 @@ namespace Examine.LuceneEngine.Config
             }
         }
 
-        private string m_IndexPath = "";
+        private string _indexPath = "";
 
         /// <summary>
         /// The folder path of where the lucene index is stored
@@ -31,14 +40,14 @@ namespace Examine.LuceneEngine.Config
         {
             get
             {
-                if (string.IsNullOrEmpty(m_IndexPath))
-                    m_IndexPath = (string)this["IndexPath"];
+                if (string.IsNullOrEmpty(_indexPath))
+                    _indexPath = (string)this["IndexPath"];
 
-                return m_IndexPath;
+                return _indexPath;
             }
             set
             {
-                m_IndexPath = value;
+                _indexPath = value;
             }
         }
 
@@ -65,15 +74,15 @@ namespace Examine.LuceneEngine.Config
         /// <summary>
         /// When this property is set, the indexing will only index documents that are children of this node.
         /// </summary>
-        [ConfigurationProperty("IndexParentId", IsRequired = false, IsKey = false)]
-        public int? IndexParentId
+        [ConfigurationProperty("ParentId", IsRequired = false, IsKey = false)]
+        public string ParentId
         {
             get
             {
-                if (this["IndexParentId"] == null)
+                if (this["ParentId"] == null)
                     return null;
 
-                return (int)this["IndexParentId"];
+                return (string)this["ParentId"];
             }
         }
 
@@ -81,12 +90,12 @@ namespace Examine.LuceneEngine.Config
         /// The collection of node types to index, if not specified, all node types will be indexed (apart from the ones specified in the ExcludeNodeTypes collection).
         /// </summary>
         [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("IncludeNodeTypes", IsDefaultCollection = false, IsRequired = false)]
-        public IndexFieldCollection IncludeNodeTypes
+        [ConfigurationProperty("IncludeItemTypes", IsDefaultCollection = false, IsRequired = false)]
+        public IndexFieldCollection IncludeItemTypes
         {
             get
             {
-                return (IndexFieldCollection)base["IncludeNodeTypes"];
+                return (IndexFieldCollection)base["IncludeItemTypes"];
             }
         }
 
@@ -94,12 +103,12 @@ namespace Examine.LuceneEngine.Config
         /// The collection of node types to not index. If specified, these node types will not be indexed.
         /// </summary>
         [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("ExcludeNodeTypes", IsDefaultCollection = false, IsRequired = false)]
-        public IndexFieldCollection ExcludeNodeTypes
+        [ConfigurationProperty("ExcludeItemTypes", IsDefaultCollection = false, IsRequired = false)]
+        public IndexFieldCollection ExcludeItemTypes
         {
             get
             {
-                return (IndexFieldCollection)base["ExcludeNodeTypes"];
+                return (IndexFieldCollection)base["ExcludeItemTypes"];
             }
         }
 
@@ -110,46 +119,14 @@ namespace Examine.LuceneEngine.Config
         /// If this property is not specified, or if it's an empty collection, the default user fields will be all user fields defined in Umbraco
         /// </remarks>
         [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("IndexUserFields", IsDefaultCollection = false, IsRequired = false)]
-        public IndexFieldCollection IndexUserFields
+        [ConfigurationProperty("Fields", IsDefaultCollection = false, IsRequired = false)]
+        public IndexFieldCollection Fields
         {
             get
             {
-                return (IndexFieldCollection)base["IndexUserFields"];
+                return (IndexFieldCollection)base["Fields"];
             }
         }
 
-        /// <summary>
-        /// The fields umbraco values that will be indexed. i.e. id, nodeTypeAlias, writer, etc...
-        /// </summary>
-        /// <remarks>
-        /// If this is not specified, or if it's an empty collection, the default optins will be specified:
-        /// - id
-        /// - version
-        /// - parentID
-        /// - level
-        /// - writerID
-        /// - creatorID
-        /// - nodeType
-        /// - template
-        /// - sortOrder
-        /// - createDate
-        /// - updateDate
-        /// - nodeName
-        /// - urlName
-        /// - writerName
-        /// - creatorName
-        /// - nodeTypeAlias
-        /// - path
-        /// </remarks>
-        [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("IndexAttributeFields", IsDefaultCollection = false, IsRequired = false)]
-        public IndexFieldCollection IndexAttributeFields
-        {
-            get
-            {
-                return (IndexFieldCollection)base["IndexAttributeFields"];
-            }
-        }
     }
 }

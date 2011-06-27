@@ -32,23 +32,23 @@ namespace Examine.Test
             var i = new UmbracoContentIndexer(new IndexCriteria(
                                                          new[]
                                                              {
-                                                                 new TestIndexField { Name = "id", EnableSorting = true, Type = "Number" }, 
-                                                                 new TestIndexField { Name = "nodeName", EnableSorting = true },
-                                                                 new TestIndexField { Name = "updateDate", EnableSorting = true, Type = "DateTime" }, 
-                                                                 new TestIndexField { Name = "writerName" }, 
-                                                                 new TestIndexField { Name = "path" }, 
-                                                                 new TestIndexField { Name = "nodeTypeAlias" }, 
-                                                                 new TestIndexField { Name = "parentID" }
+                                                                 new TestIndexFieldDefinition { Name = "id", EnableSorting = true, Type = "Number" }, 
+                                                                 new TestIndexFieldDefinition { Name = "nodeName", EnableSorting = true },
+                                                                 new TestIndexFieldDefinition { Name = "updateDate", EnableSorting = true, Type = "DateTime" }, 
+                                                                 new TestIndexFieldDefinition { Name = "writerName" }, 
+                                                                 new TestIndexFieldDefinition { Name = "path" }, 
+                                                                 new TestIndexFieldDefinition { Name = "nodeTypeAlias" }, 
+                                                                 new TestIndexFieldDefinition { Name = "parentID" }
                                                              },
                                                          new[]
                                                              {
-                                                                 new TestIndexField { Name = "headerText" }, 
-                                                                 new TestIndexField { Name = "bodyText" },
-                                                                 new TestIndexField { Name = "metaDescription" }, 
-                                                                 new TestIndexField { Name = "metaKeywords" }, 
-                                                                 new TestIndexField { Name = "bodyTextColOne" }, 
-                                                                 new TestIndexField { Name = "bodyTextColTwo" }, 
-                                                                 new TestIndexField { Name = "xmlStorageTest" }
+                                                                 new TestIndexFieldDefinition { Name = "headerText" }, 
+                                                                 new TestIndexFieldDefinition { Name = "bodyText" },
+                                                                 new TestIndexFieldDefinition { Name = "metaDescription" }, 
+                                                                 new TestIndexFieldDefinition { Name = "metaKeywords" }, 
+                                                                 new TestIndexFieldDefinition { Name = "bodyTextColOne" }, 
+                                                                 new TestIndexFieldDefinition { Name = "bodyTextColTwo" }, 
+                                                                 new TestIndexFieldDefinition { Name = "xmlStorageTest" }
                                                              },
                                                          new[]
                                                              {
@@ -84,19 +84,19 @@ namespace Examine.Test
                                                          new IIndexField[] { },
                                                          new[]
                                                              {
-                                                                 new TestIndexField { Name = "Author" }, 
-                                                                 new TestIndexField { Name = "DateCreated", EnableSorting = true, Type = "DateTime"  },
-                                                                 new TestIndexField { Name = "Title" }, 
-                                                                 new TestIndexField { Name = "Photographer" }, 
-                                                                 new TestIndexField { Name = "YearCreated", Type = "Date.Year" }, 
-                                                                 new TestIndexField { Name = "MonthCreated", Type = "Date.Month" }, 
-                                                                 new TestIndexField { Name = "DayCreated", Type = "Date.Day" },
-                                                                 new TestIndexField { Name = "HourCreated", Type = "Date.Hour" },
-                                                                 new TestIndexField { Name = "MinuteCreated", Type = "Date.Minute" },
-                                                                 new TestIndexField { Name = "SomeNumber", Type = "Number" },
-                                                                 new TestIndexField { Name = "SomeFloat", Type = "Float" },
-                                                                 new TestIndexField { Name = "SomeDouble", Type = "Double" },
-                                                                 new TestIndexField { Name = "SomeLong", Type = "Long" }
+                                                                 new TestIndexFieldDefinition { Name = "Author" }, 
+                                                                 new TestIndexFieldDefinition { Name = "DateCreated", EnableSorting = true, Type = "DateTime"  },
+                                                                 new TestIndexFieldDefinition { Name = "Title" }, 
+                                                                 new TestIndexFieldDefinition { Name = "Photographer" }, 
+                                                                 new TestIndexFieldDefinition { Name = "YearCreated", Type = "Date.Year" }, 
+                                                                 new TestIndexFieldDefinition { Name = "MonthCreated", Type = "Date.Month" }, 
+                                                                 new TestIndexFieldDefinition { Name = "DayCreated", Type = "Date.Day" },
+                                                                 new TestIndexFieldDefinition { Name = "HourCreated", Type = "Date.Hour" },
+                                                                 new TestIndexFieldDefinition { Name = "MinuteCreated", Type = "Date.Minute" },
+                                                                 new TestIndexFieldDefinition { Name = "SomeNumber", Type = "Number" },
+                                                                 new TestIndexFieldDefinition { Name = "SomeFloat", Type = "Float" },
+                                                                 new TestIndexFieldDefinition { Name = "SomeDouble", Type = "Double" },
+                                                                 new TestIndexFieldDefinition { Name = "SomeLong", Type = "Long" }
                                                              },
                                                          new string[] { },
                                                          new string[] { },

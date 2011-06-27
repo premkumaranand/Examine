@@ -2,13 +2,23 @@
 
 namespace Examine
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class IndexedNodeEventArgs : EventArgs
     {
-        public IndexedNodeEventArgs(int nodeId)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IndexedNodeEventArgs"/> class.
+        /// </summary>
+        /// <param name="id">The id.</param>
+        public IndexedNodeEventArgs(string id)
         {
-            NodeId = nodeId;
+            Id = id;
         }
 
-        public int NodeId { get; private set; }
+        /// <summary>
+        /// Gets the id.
+        /// </summary>
+        public string Id { get; private set; }
     }
 }

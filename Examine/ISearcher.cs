@@ -31,6 +31,11 @@ namespace Examine
         /// <returns></returns>
         ISearchCriteria CreateSearchCriteria();
 
+        /// <summary>
+        /// Creates the search criteria.
+        /// </summary>
+        /// <param name="defaultOperation">The default operation.</param>
+        /// <returns></returns>
         ISearchCriteria CreateSearchCriteria(BooleanOperation defaultOperation);
 
         /// <summary>

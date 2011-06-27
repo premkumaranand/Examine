@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,32 +10,45 @@ namespace Examine
     /// <summary>
     /// a data structure for storing indexing/searching instructions
     /// </summary>
-    public class IndexCriteria : IIndexCriteria
+    public class IndexCriteria
     {
 
         ///<summary>
         /// Constructor
         ///</summary>
-        ///<param name="standardFields"></param>
-        ///<param name="userFields"></param>
+        ///<param name="fields"></param>
         ///<param name="includeNodeTypes"></param>
         ///<param name="excludeNodeTypes"></param>
         ///<param name="parentNodeId"></param>
-        public IndexCriteria(IEnumerable<IIndexField> standardFields, IEnumerable<IIndexField> userFields, IEnumerable<string> includeNodeTypes, IEnumerable<string> excludeNodeTypes, int? parentNodeId)
+        public IndexCriteria(IEnumerable<IIndexFieldDefinition> fields, 
+            IEnumerable<string> includeNodeTypes, 
+            IEnumerable<string> excludeNodeTypes, 
+            string parentNodeId)
         {
-            UserFields = userFields.ToList();
-            StandardFields = standardFields.ToList();
-            IncludeNodeTypes = includeNodeTypes;
-            ExcludeNodeTypes = excludeNodeTypes;
-            ParentNodeId = parentNodeId;
+            if (fields == null) fields = Enumerable.Empty<IIndexFieldDefinition>();
+            if (includeNodeTypes == null) includeNodeTypes = Enumerable.Empty<string>();
+            if (excludeNodeTypes == null) excludeNodeTypes = Enumerable.Empty<string>();
+            if (parentNodeId == null) parentNodeId = string.Empty;
+
+            Fields = fields.ToList();
+            IncludeItemTypes = includeNodeTypes;
+            ExcludeItemTypes = excludeNodeTypes;
+            ParentId = parentNodeId;
         }
 
-        public IEnumerable<IIndexField> StandardFields { get; internal set; }
-        public IEnumerable<IIndexField> UserFields { get; internal set; }
+        public IEnumerable<IIndexFieldDefinition> Fields { get; internal set; }
 
-        public IEnumerable<string> IncludeNodeTypes { get; internal set; }
-        public IEnumerable<string> ExcludeNodeTypes { get; internal set; }
-        public int? ParentNodeId { get; internal set; }
+        /// <summary>
+        /// Gets the include item types.
+        /// </summary>
+        public IEnumerable<string> IncludeItemTypes { get; internal set; }
+
+        /// <summary>
+        /// Gets the exclude item types.
+        /// </summary>
+        public IEnumerable<string> ExcludeItemTypes { get; internal set; }
+
+        public string ParentId { get; internal set; }
     }
 
     

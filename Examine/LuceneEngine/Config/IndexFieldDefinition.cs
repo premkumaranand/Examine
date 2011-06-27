@@ -9,7 +9,7 @@ namespace Examine.LuceneEngine.Config
     ///<summary>
     /// A configuration item representing a field to index
     ///</summary>
-    public sealed class IndexField : ConfigurationElement, IIndexField
+    public sealed class IndexFieldDefinition : ConfigurationElement, IIndexFieldDefinition
     {
         [ConfigurationProperty("Name", IsRequired = true)]
         public string Name
@@ -37,24 +37,24 @@ namespace Examine.LuceneEngine.Config
             }
         }
 
-        [ConfigurationProperty("Type", IsRequired = false, DefaultValue="String")]
-        public string Type
+        [ConfigurationProperty("DataType", IsRequired = false, DefaultValue = "String")]
+        public string DataType
         {
             get
             {
-                return (string)this["Type"];
+                return (string)this["DataType"];
             }
             set
             {
-                this["Type"] = value;
+                this["DataType"] = value;
             }
         }
 
         public override bool Equals(object compareTo)
         {
-            if (compareTo is IndexField)
+            if (compareTo is IndexFieldDefinition)
             {
-                return this.Name.Equals(((IndexField)compareTo).Name);
+                return this.Name.Equals(((IndexFieldDefinition)compareTo).Name);
             }
             return false;
         }

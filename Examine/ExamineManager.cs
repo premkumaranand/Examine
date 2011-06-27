@@ -21,19 +21,6 @@ namespace Examine
             LoadProviders();
         }
 
-        /// <summary>
-        /// Singleton
-        /// </summary>
-        public static ExamineManager Instance
-        {
-            get
-            {
-                return Manager;
-            }
-        }
-
-        private static readonly ExamineManager Manager = new ExamineManager();
-
         private readonly object _lock = new object();
 
         ///<summary>
@@ -113,22 +100,22 @@ namespace Examine
         /// <summary>
         /// Reindex nodes for the providers specified
         /// </summary>
-        /// <param name="node"></param>
-        /// <param name="type"></param>
+        /// <param name="item"></param>
+        /// <param name="indexCategory"></param>
         /// <param name="providers"></param>
-        public void ReIndexNode(XElement node, string type, IEnumerable<BaseIndexProvider> providers)
+        public void ReIndexNode(IndexItem item, string indexCategory, IEnumerable<BaseIndexProvider> providers)
         {
-            _ReIndexNode(node, type, providers);
+            ReIndexNodeForProviders(item, indexCategory, providers);
         }
 
         /// <summary>
         /// Deletes index for node for the specified providers
         /// </summary>
-        /// <param name="nodeId"></param>
+        /// <param name="id"></param>
         /// <param name="providers"></param>
-        public void DeleteFromIndex(string nodeId, IEnumerable<BaseIndexProvider> providers)
+        public void DeleteFromIndex(string id, IEnumerable<BaseIndexProvider> providers)
         {
-            _DeleteFromIndex(nodeId, providers);
+            DeleteFromIndexForProviders(id, providers);
         }
 
         #region IIndexer Members
@@ -136,29 +123,31 @@ namespace Examine
         /// <summary>
         /// Reindex nodes for all providers
         /// </summary>
-        /// <param name="node"></param>
-        /// <param name="type"></param>
-        public void ReIndexNode(XElement node, string type)
+        /// <param name="item"></param>
+        /// <param name="indexCategory"></param>
+        public void ReIndexNode(IndexItem item, string indexCategory)
         {
-            _ReIndexNode(node, type, IndexProviderCollection);
+            ReIndexNodeForProviders(item, indexCategory, IndexProviderCollection);
         }
-        private void _ReIndexNode(XElement node, string type, IEnumerable<BaseIndexProvider> providers)
+
+        private static void ReIndexNodeForProviders(IndexItem item, string indexCategory, IEnumerable<BaseIndexProvider> providers)
         {
             foreach (var provider in providers)
             {
-                provider.ReIndexNode(node, type);
+                provider.ReIndexNode(item, indexCategory);
             }
         }
 
         /// <summary>
         /// Deletes index for node for all providers
         /// </summary>
-        /// <param name="node"></param>
-        public void DeleteFromIndex(string nodeId)
+        /// <param name="id"></param>
+        public void DeleteFromIndex(string id)
         {
-            _DeleteFromIndex(nodeId, IndexProviderCollection);
+            DeleteFromIndexForProviders(id, IndexProviderCollection);
         }    
-        private void _DeleteFromIndex(string nodeId, IEnumerable<BaseIndexProvider> providers)
+
+        private static void DeleteFromIndexForProviders(string nodeId, IEnumerable<BaseIndexProvider> providers)
         {
             foreach (var provider in providers)
             {
@@ -166,31 +155,7 @@ namespace Examine
             }
         }
 
-        public void IndexAll(string type)
-        {
-            _IndexAll(type);
-        }
-        private void _IndexAll(string type)
-        {
-            foreach (BaseIndexProvider provider in IndexProviderCollection)
-            {
-                provider.IndexAll(type);
-            }
-        }
-
-        public void RebuildIndex()
-        {
-            _RebuildIndex();
-        }
-        private void _RebuildIndex()
-        {
-            foreach (BaseIndexProvider provider in IndexProviderCollection)
-            {
-                provider.RebuildIndex();
-            }
-        }
-
-        public IIndexCriteria IndexerData
+        public IndexCriteria IndexerData
         {
             get
             {

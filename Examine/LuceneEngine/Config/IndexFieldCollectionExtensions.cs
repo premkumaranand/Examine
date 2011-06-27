@@ -8,10 +8,10 @@ namespace Examine.LuceneEngine.Config
 {
     public static class IndexFieldCollectionExtensions
     {
-        public static List<IndexField> ToList(this IndexFieldCollection indexes)
+        public static List<IndexFieldDefinition> ToList(this IndexFieldCollection indexes)
         {
-            List<IndexField> fields = new List<IndexField>();
-            foreach (IndexField field in indexes)
+            List<IndexFieldDefinition> fields = new List<IndexFieldDefinition>();
+            foreach (IndexFieldDefinition field in indexes)
                 fields.Add(field);
             return fields;
         }

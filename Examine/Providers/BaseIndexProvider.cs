@@ -13,97 +13,36 @@ namespace Examine.Providers
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseIndexProvider"/> class.
         /// </summary>
-        public BaseIndexProvider() { }
+        protected BaseIndexProvider() { }
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseIndexProvider"/> class.
         /// </summary>
         /// <param name="indexerData">The indexer data.</param>
-        public BaseIndexProvider(IIndexCriteria indexerData)
+        protected BaseIndexProvider(IndexCriteria indexerData)
         {
             IndexerData = indexerData;
-        }
-
-        /// <summary>
-        /// Initializes the provider.
-        /// </summary>
-        /// <param name="name">The friendly name of the provider.</param>
-        /// <param name="config">A collection of the name/value pairs representing the provider-specific attributes specified in the configuration for this provider.</param>
-        /// <exception cref="T:System.ArgumentNullException">
-        /// The name of the provider is null.
-        /// </exception>
-        /// <exception cref="T:System.ArgumentException">
-        /// The name of the provider has a length of zero.
-        /// </exception>
-        /// <exception cref="T:System.InvalidOperationException">
-        /// An attempt is made to call <see cref="M:System.Configuration.Provider.ProviderBase.Initialize(System.String,System.Collections.Specialized.NameValueCollection)"/> on a provider after the provider has already been initialized.
-        /// </exception>
-        public override void Initialize(string name, System.Collections.Specialized.NameValueCollection config)
-        {
-            base.Initialize(name, config);
-
-            EnableDefaultEventHandler = true; //set to true by default
-            bool enabled;
-            if (bool.TryParse(config["enableDefaultEventHandler"], out enabled))
-            {
-                EnableDefaultEventHandler = enabled;
-            }                           
-
-            //if (config["enabled"] == null)
-            //    throw new ArgumentNullException("enabled flag on index provider has not been set");
-
-            //bool enabled;
-            //if (!bool.TryParse(config["enabled"], out enabled))
-            //    throw new ArgumentNullException("enabled flag on index provider has not been set");
-
-            //Enabled = enabled;
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether this <see cref="BaseIndexProvider"/> is enabled.
-        /// </summary>
-        /// <value><c>true</c> if enabled; otherwise, <c>false</c>.</value>
-        //public bool Enabled { get; set; }
-
-        /// <summary>
-        /// If true, the IndexingActionHandler will be run to keep the default index up to date.
-        /// </summary>
-        public bool EnableDefaultEventHandler { get; protected set; }
+        }    
 
         #region IIndexer members
-        /// <summary>
-        /// Determines if the manager will call the indexing methods when content is saved or deleted as
-        /// opposed to cache being updated.
-        /// </summary>
-        public abstract bool SupportUnpublishedContent { get; protected set; }
+       
         
         /// <summary>
         /// Forces a particular XML node to be reindexed
         /// </summary>
-        /// <param name="node">XML node to reindex</param>
+        /// <param name="item">XML node to reindex</param>
         /// <param name="type">Type of index to use</param>
-        public abstract void ReIndexNode(XElement node, string type);
+        public abstract void ReIndexNode(IndexItem item, string type);
 
         /// <summary>
         /// Deletes a node from the index
         /// </summary>
-        /// <param name="node">Node to delete</param>
-        public abstract void DeleteFromIndex(string nodeId);
-
-        /// <summary>
-        /// Re-indexes all data for the index type specified
-        /// </summary>
-        /// <param name="type"></param>
-        public abstract void IndexAll(string type);
-
-        /// <summary>
-        /// Rebuilds the entire index from scratch for all index types
-        /// </summary>
-        public abstract void RebuildIndex();
+        /// <param name="id">item to delete</param>
+        public abstract void DeleteFromIndex(string id);
 
         /// <summary>
         /// Gets/sets the index criteria to create the index with
         /// </summary>
-        public IIndexCriteria IndexerData { get; set; }
+        public IndexCriteria IndexerData { get; set; }
 
         #endregion
 

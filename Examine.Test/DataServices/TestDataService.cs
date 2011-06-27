@@ -1,10 +1,9 @@
 ﻿using System.IO;
 using System.Reflection;
-using UmbracoExamine.DataServices;
 
 namespace Examine.Test.DataServices
 {
-    public class TestDataService : IDataService
+    public class TestDataService 
     {
 
         public TestDataService()

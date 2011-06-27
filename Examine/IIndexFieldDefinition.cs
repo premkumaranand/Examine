@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents a field to index
     /// </summary>
-    public interface IIndexField
+    public interface IIndexFieldDefinition
     {
         /// <summary>
         /// The name of the index field
@@ -18,6 +18,6 @@
         /// <summary>
         /// The data type
         /// </summary>
-        string Type { get; set; }
+        string DataType { get; set; }
     }
 }
