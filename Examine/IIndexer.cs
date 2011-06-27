@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Collections.Generic;
+using System.Xml.Linq;
 
 namespace Examine
 {
@@ -12,7 +13,7 @@ namespace Examine
         /// </summary>
         /// <param name="node">XML node to reindex</param>
         /// <param name="type">Type of index to use</param>
-        void ReIndexNode(XElement node, string type);
+        void ReIndexNode(IDictionary<string, string> node, string type);
         
         /// <summary>
         /// Deletes a node from the index
@@ -20,17 +21,6 @@ namespace Examine
         /// <param name="nodeId">Node to delete</param>
         void DeleteFromIndex(string nodeId);
         
-        /// <summary>
-        /// Re-indexes all data for the index type specified
-        /// </summary>
-        /// <param name="type"></param>
-        void IndexAll(string type);
-
-        /// <summary>
-        /// Rebuilds the entire index from scratch for all index types
-        /// </summary>
-        void RebuildIndex();
-
         /// <summary>
         /// Gets/sets the index criteria to create the index with
         /// </summary>
