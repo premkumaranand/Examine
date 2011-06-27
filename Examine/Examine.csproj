@@ -133,7 +133,6 @@
     <Compile Include="LuceneEngine\SearchResults.cs" />
     <Compile Include="LuceneEngine\SerializableDictionary.cs" />
     <Compile Include="LuceneEngine\SerializableDictionaryExtensions.cs" />
-    <Compile Include="LuceneEngine\SimpleDataSet.cs" />
     <Compile Include="SearchCriteria\BooleanOperation.cs" />
     <Compile Include="SearchCriteria\DateResolution.cs" />
     <Compile Include="SearchCriteria\IBooleanOperation.cs" />

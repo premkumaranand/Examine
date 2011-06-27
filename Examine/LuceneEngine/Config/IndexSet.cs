@@ -72,21 +72,6 @@ namespace Examine.LuceneEngine.Config
         }
 
         /// <summary>
-        /// When this property is set, the indexing will only index documents that are children of this node.
-        /// </summary>
-        [ConfigurationProperty("ParentId", IsRequired = false, IsKey = false)]
-        public string ParentId
-        {
-            get
-            {
-                if (this["ParentId"] == null)
-                    return null;
-
-                return (string)this["ParentId"];
-            }
-        }
-
-        /// <summary>
         /// The collection of node types to index, if not specified, all node types will be indexed (apart from the ones specified in the ExcludeNodeTypes collection).
         /// </summary>
         [ConfigurationCollection(typeof(IndexFieldCollection))]

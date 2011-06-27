@@ -33,7 +33,6 @@ namespace Examine
             Fields = fields.ToList();
             IncludeItemTypes = includeNodeTypes;
             ExcludeItemTypes = excludeNodeTypes;
-            ParentId = parentNodeId;
         }
 
         public IEnumerable<IIndexFieldDefinition> Fields { get; internal set; }
@@ -48,7 +47,6 @@ namespace Examine
         /// </summary>
         public IEnumerable<string> ExcludeItemTypes { get; internal set; }
 
-        public string ParentId { get; internal set; }
     }
 
     
