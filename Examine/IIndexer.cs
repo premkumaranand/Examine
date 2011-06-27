@@ -10,9 +10,9 @@ namespace Examine
         /// <summary>
         /// Forces a particular XML node to be reindexed
         /// </summary>
-        /// <param name="item">item to reindex</param>
+        /// <param name="items">item to reindex</param>
         /// <param name="indexCategory">Category of index to use</param>
-        void ReIndexNode(IndexItem item, string indexCategory);
+        void ReIndexNodes(string indexCategory, params IndexItem[] items);
         
         /// <summary>
         /// Deletes a node from the index

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration.Provider;
+using System.Linq;
 using System.Web.Configuration;
 using System.Xml.Linq;
 using Examine.Config;
@@ -100,12 +101,12 @@ namespace Examine
         /// <summary>
         /// Reindex nodes for the providers specified
         /// </summary>
-        /// <param name="item"></param>
+        /// <param name="items"></param>
         /// <param name="indexCategory"></param>
         /// <param name="providers"></param>
-        public void ReIndexNode(IndexItem item, string indexCategory, IEnumerable<BaseIndexProvider> providers)
+        public void ReIndexNodes(IndexItem[] items, string indexCategory, IEnumerable<IIndexer> providers)
         {
-            ReIndexNodeForProviders(item, indexCategory, providers);
+            ReIndexNodesForProviders(items, indexCategory, providers);
         }
 
         /// <summary>
@@ -125,16 +126,16 @@ namespace Examine
         /// </summary>
         /// <param name="item"></param>
         /// <param name="indexCategory"></param>
-        public void ReIndexNode(IndexItem item, string indexCategory)
+        public void ReIndexNodes(string indexCategory, params IndexItem[] item)
         {
-            ReIndexNodeForProviders(item, indexCategory, IndexProviderCollection);
+            ReIndexNodesForProviders(item, indexCategory, IndexProviderCollection.Cast<IIndexer>());
         }
 
-        private static void ReIndexNodeForProviders(IndexItem item, string indexCategory, IEnumerable<BaseIndexProvider> providers)
+        private static void ReIndexNodesForProviders(IndexItem[] items, string indexCategory, IEnumerable<IIndexer> providers)
         {
             foreach (var provider in providers)
             {
-                provider.ReIndexNode(item, indexCategory);
+                provider.ReIndexNodes(indexCategory, items);
             }
         }
 

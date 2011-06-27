@@ -370,12 +370,12 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Reindexes an item
         /// </summary>
-        /// <param name="item">XML node to reindex</param>
+        /// <param name="items">XML node to reindex</param>
         /// <param name="category">Type of index to use</param>
-        public override void ReIndexNode(IndexItem item, string category)
-        {           
+        public override void ReIndexNodes(string category, params IndexItem[] items)
+        {
             //now index the single node            
-            AddNodesToIndex(category, new IndexOperation { Item = item, Operation = IndexOperationType.Add });
+            AddNodesToIndex(category, items.Select(x => new IndexOperation {Item = x, Operation = IndexOperationType.Add}).ToArray());
         }
 
         /// <summary>
@@ -434,6 +434,11 @@ namespace Examine.LuceneEngine.Providers
 
         #region Protected
 
+        protected internal bool IsAsyncBusy
+        {
+            get { return _workerThread != null ? _workerThread.IsBusy : false; }
+        }
+
         /// <summary>
         /// Returns an index operation to remove the item by id
         /// </summary>
@@ -488,7 +493,7 @@ namespace Examine.LuceneEngine.Providers
                 }
 
             }
-            
+
             //run the indexer on all queued files
             SafelyProcessQueueItems(buffer);
         }
@@ -1094,10 +1099,9 @@ namespace Examine.LuceneEngine.Providers
                             //they were added so shouldn't need to sort anything
 
                             //we need to iterate like this because our threadsafe list doesn't allow enumeration
-                            var curr = 0;
-                            while(curr < buffer.Count)
+                            while (buffer.Count > 0)
                             {
-                                var item = buffer[curr];
+                                var item = buffer[0];
 
                                 switch (item.Operation)
                                 {
@@ -1127,7 +1131,9 @@ namespace Examine.LuceneEngine.Providers
                                         throw new ArgumentOutOfRangeException();
                                 }
 
-                                curr++;
+                                //remove the item from the buffer
+                                buffer.Remove(item);
+                                
                             }
 
                             //raise the completed event
@@ -1284,9 +1290,9 @@ namespace Examine.LuceneEngine.Providers
                     _workerThread.DoWork -= WorkerThread_DoWork;
                     _workerThread.Dispose();
                     _workerThread = null;
-                }
 
-                return;
+                    return;
+                }
             }
             else
             {
@@ -1298,15 +1304,15 @@ namespace Examine.LuceneEngine.Providers
             }
 
             //re-index everything in the buffer, add everything safely to our threadsafe queue
-            foreach(var b in buffer)
+            foreach (var b in buffer)
             {
                 AsyncQueue.Add(b);
             }
-            
+
             //don't run the worker if it's currently running since it will just pick up the rest of the queue during its normal operation
             if (!_workerThread.IsBusy)
             {
-                _workerThread.RunWorkerAsync();    
+                _workerThread.RunWorkerAsync();
             }
 
         }
@@ -1430,7 +1436,7 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="x"></param>
         /// <param name="ir"></param>
         private void ProcessDeleteQueueItem(IndexItem x, IndexReader ir)
-        {            
+        {
             //we know that there's only ever one item saved to the dictionary for deletions
             if (x.Fields.Count != 1)
             {
@@ -1443,7 +1449,7 @@ namespace Examine.LuceneEngine.Providers
             CommitCount++;
         }
 
-   
+
 
         /// <summary>
         /// Reads the FileInfo passed in into a dictionary object and adds it to the index
@@ -1460,7 +1466,7 @@ namespace Examine.LuceneEngine.Providers
             AddDocument(x.Fields, writer, id, x.Fields[IndexCategoryFieldName]);
 
             CommitCount++;
-            
+
             return new IndexedNode() { Id = id, Type = x.Fields[IndexCategoryFieldName] };
         }
 

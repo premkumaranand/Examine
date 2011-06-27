@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Examine.LuceneEngine.Config;
 using Examine.LuceneEngine.Providers;
 
@@ -26,12 +27,12 @@ namespace Examine.Test.Index
 
             //act
 
-            indexer.ReIndexNode(new IndexItem
+            indexer.ReIndexNodes("TestCategory", new IndexItem
                 {
                     Fields = new Dictionary<string, string> {{"Field1", "hello world"}},
                     Id = "test1",
                     ItemType = "test"
-                }, "TestCategory");
+                });
 
             //assert
 
@@ -51,12 +52,12 @@ namespace Examine.Test.Index
 
             //act
 
-            indexer.ReIndexNode(new IndexItem
+            indexer.ReIndexNodes("TestCategory", new IndexItem
             {
                 Fields = new Dictionary<string, string> { { "Field1", "hello world" } },
                 Id = "test1",
                 ItemType = "test"
-            }, "TestCategory");
+            });
 
             //assert
 
@@ -66,6 +67,83 @@ namespace Examine.Test.Index
             Assert.AreEqual(3, results.First().Fields.Count());
             Assert.AreEqual("test1", results.First().Fields[LuceneIndexer.IndexNodeIdFieldName]);
             Assert.AreEqual("testcategory", results.First().Fields[LuceneIndexer.IndexCategoryFieldName]);
+        }
+
+        [TestMethod]
+        public void Indexing_Background_Worker_Indexes_Many_Individually()
+        {
+            //get an async indexer
+
+            _currentFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
+            _currentFolder.Create();
+            var indexer = new LuceneIndexer(
+                new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
+                _currentFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), SynchronizationType.AsyncBackgroundWorker);
+            
+            for(var i = 0;i<20;i++)
+            {
+                indexer.ReIndexNodes("TestCategory", new IndexItem
+                {
+                    Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
+                    Id = "test" + i,
+                    ItemType = "test"
+                });
+            }
+
+            while(indexer.IsAsyncBusy)
+            {
+                Thread.Sleep(1000);
+            }
+            
+            //assert
+
+            var searcher = GetSearcher(_currentFolder);
+            var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
+
+            Assert.AreEqual(20, results.Count());
+        }
+
+        [TestMethod]
+        public void Indexing_Background_Worker_Indexes_Many_At_Once()
+        {
+            //Arrange
+
+            //get an async indexer
+            _currentFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
+            _currentFolder.Create();
+            var indexer = new LuceneIndexer(
+                new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
+                _currentFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), SynchronizationType.AsyncBackgroundWorker);
+            var toIndex = new List<IndexItem>();
+
+            for(var i = 0;i<20;i++)
+            {
+                toIndex.Add(new IndexItem
+                    {
+                        Fields = new Dictionary<string, string> {{"Field1", "hello world " + i}},
+                        Id = "test" + i,
+                        ItemType = "test"
+                    });
+            }
+
+            //ACT
+
+            //add them all at once
+            indexer.ReIndexNodes("TestCategory", toIndex.ToArray());
+
+            while(indexer.IsAsyncBusy)
+            {
+                Thread.Sleep(1000);
+            }
+            
+            //assert
+
+            var searcher = GetSearcher(_currentFolder);
+            var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
+
+            Assert.AreEqual(20, results.Count());
         }
 
         private ISearcher GetSearcher(DirectoryInfo folder)
