@@ -24,10 +24,19 @@ namespace Examine.LuceneEngine.Providers
         #region Constructors
 
 		/// <summary>
-		/// Default constructor
+		/// Default constructor for use with provider implementation
 		/// </summary>
         public MultiIndexSearcher()
+            : this(IndexSets.GetDefaultInstance())
 		{
+		}
+
+        /// <summary>
+        /// Default constructor for use with provider implementation
+        /// </summary>
+        public MultiIndexSearcher(IndexSets indexSetConfig)
+        {
+            IndexSetConfiguration = indexSetConfig;
         }
 
         /// <summary>
@@ -37,12 +46,20 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="analyzer"></param>
         public MultiIndexSearcher(IEnumerable<DirectoryInfo> indexPath, Analyzer analyzer)
             : base(analyzer)
-		{
+        {
             Searchers = indexPath.Select(s => new LuceneSearcher(s, IndexingAnalyzer)).ToList();
 		}
 
 		#endregion
-        
+
+        /// <summary>
+        /// Gets or sets the index set configuration.
+        /// </summary>
+        /// <value>
+        /// The index set configuration.
+        /// </value>
+        protected IndexSets IndexSetConfiguration { get; set; }
+
         ///<summary>
         /// The underlying LuceneSearchers that will be searched across
         ///</summary>
@@ -60,7 +77,7 @@ namespace Examine.LuceneEngine.Providers
             }
 
             var toSearch = new List<IndexSet>();
-            var sets = IndexSets.Instance.Sets.Cast<IndexSet>();
+            var sets = IndexSetConfiguration.Sets.Cast<IndexSet>();
             foreach(var i in config["indexSets"].Split(','))
             {
                 var s = sets.Where(x => x.SetName == i).SingleOrDefault();

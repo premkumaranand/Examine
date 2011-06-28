@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ namespace Examine.Config
     /// <summary>
     /// Config section for the Examine search providers
     /// </summary>
-    public class SearchProvidersSection : ConfigurationElement
+    public class SearchProvidersSection : ConfigurationElement, IEnumerable<ProviderSettings>
     {
 
         /// <summary>
@@ -32,6 +33,16 @@ namespace Examine.Config
         {
             get { return (string)base["defaultProvider"]; }
             set { base["defaultProvider"] = value; }
+        }
+
+        public IEnumerator<ProviderSettings> GetEnumerator()
+        {
+            return Providers.Cast<ProviderSettings>().GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return Providers.GetEnumerator();
         }
     }
 }

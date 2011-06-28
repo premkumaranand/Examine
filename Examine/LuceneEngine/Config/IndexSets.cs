@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,30 +9,26 @@ using System.Web;
 
 namespace Examine.LuceneEngine.Config
 {
+
     /// <summary>
-    /// Defines XPath statements that map to specific umbraco nodes
+    /// Defines an Index set
     /// </summary>
-    public class IndexSets : ConfigurationSection
+    public class IndexSets : ConfigurationSection, IEnumerable<IndexSet>
     {
-
-        #region Singleton definition
-
-        private static readonly IndexSets _indexSets;
-        protected IndexSets() { }
-        static IndexSets()
+        private const string SectionName = "examine.indexes";
+       
+        ///<summary>
+        /// Returns a default instance of the config
+        ///</summary>
+        ///<returns></returns>
+        public static IndexSets GetDefaultInstance()
         {
-            _indexSets = ConfigurationManager.GetSection(SectionName) as IndexSets;     
-  
-        }
-        public static IndexSets Instance
-        {
-            get { return _indexSets; }
+            return ConfigurationManager.GetSection(SectionName) as IndexSets;  
         }
 
-        #endregion
-
-        private const string SectionName = "examineLuceneIndexSets";
-
+        /// <summary>
+        /// Gets the sets.
+        /// </summary>
         [ConfigurationCollection(typeof(IndexSetCollection))]
         [ConfigurationProperty("", IsDefaultCollection = true, IsRequired = true)]
         public IndexSetCollection Sets
@@ -41,7 +38,16 @@ namespace Examine.LuceneEngine.Config
                 return (IndexSetCollection)base[""];
             }
         }
-                
+
+        public IEnumerator<IndexSet> GetEnumerator()
+        {
+            return Sets.Cast<IndexSet>().GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return Sets.GetEnumerator();
+        }
     }
 
     

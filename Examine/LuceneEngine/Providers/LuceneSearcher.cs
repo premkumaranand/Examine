@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
@@ -23,10 +24,20 @@ namespace Examine.LuceneEngine.Providers
 		#region Constructors
 
 		/// <summary>
-		/// Default constructor
+		/// Default constructor for use with Provider implementation
 		/// </summary>
         public LuceneSearcher()
+            : this(IndexSets.GetDefaultInstance())
 		{
+		}
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LuceneSearcher"/> class.
+        /// </summary>
+        /// <param name="indexSetConfig">The index set config.</param>
+        public LuceneSearcher(IEnumerable<IndexSet> indexSetConfig)
+        {
+            IndexSetConfiguration = indexSetConfig;
         }
 
         /// <summary>
@@ -37,7 +48,7 @@ namespace Examine.LuceneEngine.Providers
         public LuceneSearcher(DirectoryInfo workingFolder, Analyzer analyzer)
             : base(analyzer)
 		{
-            LuceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index")); 			
+            LuceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index"));
 		}
 
 		#endregion
@@ -76,35 +87,42 @@ namespace Examine.LuceneEngine.Providers
 				{
 					var setNameByConvension = name.Remove(name.LastIndexOf("Searcher")) + "IndexSet";
 					//check if we can assign the index set by naming convension
-					var set = IndexSets.Instance.Sets.Cast<IndexSet>()
-						.Where(x => x.SetName == setNameByConvension)
-						.SingleOrDefault();
+				    var set = IndexSetConfiguration.SingleOrDefault(x => x.SetName == setNameByConvension);
 
 					if (set != null)
 					{
 						//we've found an index set by naming convensions :)
 						_indexSetName = set.SetName;
 						found = true;
+
+                        //get the folder to index
+                        LuceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
 					}
 				}
 
 				if (!found)
 					throw new ArgumentNullException("indexSet on LuceneExamineIndexer provider has not been set in configuration");
-
-				//get the folder to index
-				LuceneIndexFolder = new DirectoryInfo(Path.Combine(IndexSets.Instance.Sets[_indexSetName].IndexDirectory.FullName, "Index"));
 			}
 			else if (config["indexSet"] != null)
 			{
-				if (IndexSets.Instance.Sets[config["indexSet"]] == null)
+                var set = IndexSetConfiguration.SingleOrDefault(x => x.SetName == config["indexSet"]);
+                if (set == null)
 					throw new ArgumentException("The indexSet specified for the LuceneExamineIndexer provider does not exist");
 
 				_indexSetName = config["indexSet"];
 
 				//get the folder to index
-				LuceneIndexFolder = new DirectoryInfo(Path.Combine(IndexSets.Instance.Sets[_indexSetName].IndexDirectory.FullName, "Index"));
+                LuceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
 			}            		
 		}
+
+        /// <summary>
+        /// Gets or sets the index set configuration.
+        /// </summary>
+        /// <value>
+        /// The index set configuration.
+        /// </value>
+        protected IEnumerable<IndexSet> IndexSetConfiguration { get; set; }
 
 		/// <summary>
 		/// Directory where the Lucene.NET Index resides

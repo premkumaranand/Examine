@@ -6,6 +6,9 @@ using System.Configuration;
 
 namespace Examine.LuceneEngine.Config
 {
+    /// <summary>
+    /// A collection of IndexSet's
+    /// </summary>
     public sealed class IndexSetCollection : ConfigurationElementCollection
     {
         #region Overridden methods to define collection
@@ -44,5 +47,6 @@ namespace Examine.LuceneEngine.Config
                 return (IndexSet)this.BaseGet(setName);
             }
         }
+     
     }
 }

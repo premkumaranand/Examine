@@ -39,7 +39,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// </summary>
         /// <param name="id">The id.</param>
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation Id(int id)
+        public IBooleanOperation Id(string id)
         {
             return this.search.IdInternal(id, this.occurance);
         }

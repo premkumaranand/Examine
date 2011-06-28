@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
-using System.ComponentModel;
 using Lucene.Net.Documents;
 using Examine;
 

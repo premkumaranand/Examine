@@ -8,6 +8,14 @@ namespace Examine
     public class IndexItem
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="IndexItem"/> class.
+        /// </summary>
+        public IndexItem()
+        {
+            Fields = new Dictionary<string, string>();
+        }
+
+        /// <summary>
         /// Gets the fields.
         /// </summary>
         public IDictionary<string, string> Fields { get; set; }

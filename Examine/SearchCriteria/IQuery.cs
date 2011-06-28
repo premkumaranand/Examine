@@ -18,7 +18,7 @@ namespace Examine.SearchCriteria
         /// </summary>
         /// <param name="id">The id.</param>
         /// <returns></returns>
-        IBooleanOperation Id(int id);
+        IBooleanOperation Id(string id);
         /// <summary>
         /// Query on the NodeName
         /// </summary>

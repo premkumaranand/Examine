@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 
-
 namespace Examine
 {
     public class IndexingNodesEventArgs : CancelEventArgs

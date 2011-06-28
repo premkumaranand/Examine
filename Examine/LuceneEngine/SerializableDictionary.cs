@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Xml.Serialization;
 using System.Runtime.Serialization;
 using Examine.LuceneEngine.Providers;
-using System.ComponentModel;
 using System.Text;
 
 namespace Examine.LuceneEngine

@@ -131,15 +131,15 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// </summary>
         /// <param name="id">The id.</param>
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation Id(int id)
+        public IBooleanOperation Id(string id)
         {
             return IdInternal(id, _occurance);
         }
 
-        internal protected IBooleanOperation IdInternal(int id, BooleanClause.Occur occurance)
+        internal protected IBooleanOperation IdInternal(string id, BooleanClause.Occur occurance)
         {
             //use a query parser (which uses the analyzer) to build up the field query which we want
-            Query.Add(this.QueryParser.GetFieldQuery(LuceneIndexer.IndexNodeIdFieldName, id.ToString()), occurance);
+            Query.Add(this.QueryParser.GetFieldQuery(LuceneIndexer.IndexNodeIdFieldName, id), occurance);
 
             return new LuceneBooleanOperation(this);
         }

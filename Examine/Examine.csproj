@@ -89,6 +89,9 @@
     <Compile Include="..\Solution Items\SolutionInfo.cs">
       <Link>Properties\SolutionInfo.cs</Link>
     </Compile>
+    <Compile Include="BackgroundWorkerSlim.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Config\IndexProvidersSection.cs" />
     <Compile Include="Config\SearchProvidersSection.cs" />
     <Compile Include="Config\ExamineSettings.cs" />

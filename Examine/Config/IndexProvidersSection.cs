@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ namespace Examine.Config
     /// <summary>
     /// Config section for the Examine Index Providers
     /// </summary>
-    public class IndexProvidersSection : ConfigurationElement
+    public class IndexProvidersSection : ConfigurationElement, IEnumerable<ProviderSettings>
     {
 
         /// <summary>
@@ -22,5 +23,14 @@ namespace Examine.Config
             get { return (ProviderSettingsCollection)base["providers"]; }
         }
 
+        public IEnumerator<ProviderSettings> GetEnumerator()
+        {
+            return Providers.Cast<ProviderSettings>().GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return Providers.GetEnumerator();
+        }
     }
 }

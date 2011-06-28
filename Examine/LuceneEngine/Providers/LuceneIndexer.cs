@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,7 +17,6 @@ using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Examine.LuceneEngine.Config;
 using Lucene.Net.Util;
-using System.ComponentModel;
 using System.Xml;
 
 namespace Examine.LuceneEngine.Providers
@@ -29,12 +29,24 @@ namespace Examine.LuceneEngine.Providers
         #region Constructors
 
         /// <summary>
-        /// Default constructor
+        /// Default constructor for use with provider implementation
         /// </summary>
         public LuceneIndexer()
+            : this(IndexSets.GetDefaultInstance())
+        {
+        }
+
+        /// <summary>
+        /// Default constructor for use with provider implementation
+        /// </summary>
+        /// <param name="indexSetConfig">
+        /// All index sets specified to be queried against in order to setup the indexer
+        /// </param>
+        public LuceneIndexer(IEnumerable<IndexSet> indexSetConfig)
         {
             WorkerThread_DoWorkEventHandler = new DoWorkEventHandler(WorkerThread_DoWork);
             OptimizationCommitThreshold = 100;
+            _indexSetConfiguration = indexSetConfig;
         }
 
         /// <summary>
@@ -46,7 +58,7 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="synchronizationType"></param>
         public LuceneIndexer(IndexCriteria indexerData, DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType)
             : base(indexerData)
-        {
+        {             
             WorkerThread_DoWorkEventHandler = new DoWorkEventHandler(WorkerThread_DoWork);
 
             //set up our folders based on the index path
@@ -59,10 +71,7 @@ namespace Examine.LuceneEngine.Providers
             InternalSearcher = new LuceneSearcher(WorkingFolder, IndexingAnalyzer);
 
             OptimizationCommitThreshold = 100;
-            SynchronizationType = synchronizationType;
-
-
-
+            SynchronizationType = synchronizationType;            
         }
 
         #endregion
@@ -105,9 +114,7 @@ namespace Examine.LuceneEngine.Providers
                 {
                     var setNameByConvension = name.Remove(name.LastIndexOf("Indexer")) + "IndexSet";
                     //check if we can assign the index set by naming convention
-                    var set = IndexSets.Instance.Sets.Cast<IndexSet>()
-                        .Where(x => x.SetName == setNameByConvension)
-                        .SingleOrDefault();
+                    var set = _indexSetConfiguration.SingleOrDefault(x => x.SetName == setNameByConvension);
 
                     if (set != null)
                     {
@@ -115,12 +122,12 @@ namespace Examine.LuceneEngine.Providers
                         IndexSetName = set.SetName;
 
                         //get the index criteria and ensure folder
-                        IndexerData = GetIndexerData(IndexSets.Instance.Sets[IndexSetName]);
-                        VerifyFolder(IndexSets.Instance.Sets[IndexSetName].IndexDirectory);
+                        IndexerData = GetIndexerData(set);
+                        VerifyFolder(set.IndexDirectory);
 
                         //now set the index folders
-                        WorkingFolder = IndexSets.Instance.Sets[IndexSetName].IndexDirectory;
-                        LuceneIndexFolder = new DirectoryInfo(Path.Combine(IndexSets.Instance.Sets[IndexSetName].IndexDirectory.FullName, "Index"));
+                        WorkingFolder = set.IndexDirectory;
+                        LuceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
 
                         found = true;
                     }
@@ -133,23 +140,21 @@ namespace Examine.LuceneEngine.Providers
             else if (config["indexSet"] != null)
             {
                 //if an index set is specified, ensure it exists and initialize the indexer based on the set
-
-                if (IndexSets.Instance.Sets[config["indexSet"]] == null)
+                var set = _indexSetConfiguration.SingleOrDefault(x => x.SetName == config["indexSet"]);
+                if (set == null)
                 {
                     throw new ArgumentException("The indexSet specified for the LuceneExamineIndexer provider does not exist");
                 }
-                else
-                {
-                    IndexSetName = config["indexSet"];
 
-                    //get the index criteria and ensure folder
-                    IndexerData = GetIndexerData(IndexSets.Instance.Sets[IndexSetName]);
-                    VerifyFolder(IndexSets.Instance.Sets[IndexSetName].IndexDirectory);
+                IndexSetName = config["indexSet"];
 
-                    //now set the index folders
-                    WorkingFolder = IndexSets.Instance.Sets[IndexSetName].IndexDirectory;
-                    LuceneIndexFolder = new DirectoryInfo(Path.Combine(IndexSets.Instance.Sets[IndexSetName].IndexDirectory.FullName, "Index"));
-                }
+                //get the index criteria and ensure folder
+                IndexerData = GetIndexerData(set);
+                VerifyFolder(set.IndexDirectory);
+
+                //now set the index folders
+                WorkingFolder = set.IndexDirectory;
+                LuceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
             }
 
             if (config["analyzer"] != null)
@@ -181,6 +186,14 @@ namespace Examine.LuceneEngine.Providers
         #endregion
 
         #region Constants & Fields
+
+        /// <summary>
+        /// Gets or sets the index set configuration, used for the provider implementation
+        /// </summary>
+        /// <value>
+        /// The index set configuration.
+        /// </value>
+        private readonly IEnumerable<IndexSet> _indexSetConfiguration;
 
         /// <summary>
         /// The prefix characters denoting a special field stored in the lucene index for use internally
@@ -223,7 +236,7 @@ namespace Examine.LuceneEngine.Providers
         private bool _isIndexing = false;
 
         private DoWorkEventHandler WorkerThread_DoWorkEventHandler;
-        private BackgroundWorker _workerThread;
+        private BackgroundWorkerSlim _workerThread;
 
         /// <summary>
         /// We need an internal searcher used to search against our own index.
@@ -235,6 +248,11 @@ namespace Examine.LuceneEngine.Providers
 
         #region Properties
 
+        protected internal bool IsAsyncBusy
+        {
+            get { return _workerThread != null ? _workerThread.IsBusy : false; }
+        }
+        
         /// <summary>
         /// The analyzer to use when indexing content, by default, this is set to StandardAnalyzer
         /// </summary>
@@ -434,10 +452,7 @@ namespace Examine.LuceneEngine.Providers
 
         #region Protected
 
-        protected internal bool IsAsyncBusy
-        {
-            get { return _workerThread != null ? _workerThread.IsBusy : false; }
-        }
+        
 
         /// <summary>
         /// Returns an index operation to remove the item by id
@@ -683,24 +698,51 @@ namespace Examine.LuceneEngine.Providers
 
             var id = item.Id;
 
-            // Get all user data that we want to index and store into a dictionary 
-            foreach (var field in IndexerData.Fields)
+            // Get all user data that we want to index and store into a dictionary.
+
+            // If no fields are specified, we will just index all fields!
+
+            if (IndexerData.Fields.Any())
             {
-                // Get the value of the data                
-                string value = item.Fields[field.Name];
+                //only index the fields that are defined...
 
-                //raise the event and assign the value to the returned data from the event
-                var indexingFieldDataArgs = new IndexingFieldDataEventArgs(item, field.Name, value, false, id);
-                OnGatheringFieldData(indexingFieldDataArgs);
-                value = indexingFieldDataArgs.FieldValue;
-
-                //don't add if the value is empty/null
-                if (!string.IsNullOrEmpty(value))
+                foreach (var field in IndexerData.Fields)
                 {
+                    // Get the value of the data                
+                    var value = item.Fields[field.Name];
+
+                    //raise the event and assign the value to the returned data from the event
+                    var indexingFieldDataArgs = new IndexingFieldDataEventArgs(item, field.Name, value, false, id);
+                    OnGatheringFieldData(indexingFieldDataArgs);
+                    value = indexingFieldDataArgs.FieldValue;
+
+                    //don't add if the value is empty/null
+                    if (string.IsNullOrEmpty(value)) continue;
                     if (!string.IsNullOrEmpty(value))
                         values.Add(field.Name, value);
                 }
             }
+            else
+            {
+                //no fields specified, so index all fields...
+
+                foreach (var field in item.Fields)
+                {
+                    // Get the value of the data                
+                    var value = field.Value;
+
+                    //raise the event and assign the value to the returned data from the event
+                    var indexingFieldDataArgs = new IndexingFieldDataEventArgs(item, field.Key, value, false, id);
+                    OnGatheringFieldData(indexingFieldDataArgs);
+                    value = indexingFieldDataArgs.FieldValue;
+
+                    //don't add if the value is empty/null
+                    if (string.IsNullOrEmpty(value)) continue;
+                    if (!string.IsNullOrEmpty(value))
+                        values.Add(field.Key, value);
+                }
+            }
+            
 
             //raise the event and assign the value to the returned data from the event
             var indexingNodeDataArgs = new IndexingNodeDataEventArgs(item, id, values, category);
@@ -1296,10 +1338,7 @@ namespace Examine.LuceneEngine.Providers
             }
             else
             {
-                _workerThread = new BackgroundWorker
-                    {
-                        WorkerSupportsCancellation = true
-                    };
+                _workerThread = new BackgroundWorkerSlim();
                 _workerThread.DoWork += WorkerThread_DoWork;
             }
 

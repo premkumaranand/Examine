@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Configuration.Provider;
 using System.Linq;
 using System.Web.Configuration;
@@ -12,21 +14,42 @@ using System.Web;
 namespace Examine
 {
     ///<summary>
-    /// Exposes searchers and indexers
+    /// Exposes searchers and indexers via the providers configuration
     ///</summary>
     public class ExamineManager : ISearcher, IIndexer
     {
         private readonly ExamineSettings _settings;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExamineManager"/> class using the default configuration/providers
+        /// </summary>
         public ExamineManager()
         {
             _settings = ExamineSettings.GetDefaultInstance();
             LoadProviders();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExamineManager"/> class using the specified provider's configuration
+        /// </summary>
+        /// <param name="settings">The settings.</param>
         public ExamineManager(ExamineSettings settings)
         {
             _settings = settings;
+            LoadProviders();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExamineManager"/> class with the specified pre-configured searchers/indexers
+        /// </summary>
+        /// <param name="searchers">The searchers.</param>
+        /// <param name="indexers">The indexers.</param>
+        /// <param name="defaultSearcher"></param>
+        public ExamineManager(IEnumerable<ISearcher> searchers, IEnumerable<IIndexer> indexers, ISearcher defaultSearcher)
+        {
+            SearchProviderCollection = searchers;
+            IndexProviderCollection = indexers;
+            DefaultSearchProvider = defaultSearcher;
         }
 
         private readonly object _lock = new object();
@@ -34,18 +57,21 @@ namespace Examine
         ///<summary>
         /// Returns the default search provider
         ///</summary>
-        public BaseSearchProvider DefaultSearchProvider { get; private set; }
+        public ISearcher DefaultSearchProvider { get; private set; }
 
         /// <summary>
         /// Returns the collection of searchers
         /// </summary>
-        public SearchProviderCollection SearchProviderCollection { get; private set; }
+        public IEnumerable<ISearcher> SearchProviderCollection { get; private set; }
 
         /// <summary>
         /// Return the colleciton of indexers
         /// </summary>
-        public IndexProviderCollection IndexProviderCollection { get; private set; }
+        public IEnumerable<IIndexer> IndexProviderCollection { get; private set; }
 
+        /// <summary>
+        /// Loads the providers from the config
+        /// </summary>
         private void LoadProviders()
         {
             if (IndexProviderCollection == null)
@@ -58,15 +84,17 @@ namespace Examine
 
                         // Load registered providers and point _provider to the default provider	
 
-                        IndexProviderCollection = new IndexProviderCollection();
-                        ProvidersHelper.InstantiateProviders(_settings.IndexProviders.Providers, IndexProviderCollection, typeof(BaseIndexProvider));
+                        var indexProviderCollection = new IndexProviderCollection();
+                        ProvidersHelper.InstantiateProviders(_settings.IndexProviders.Providers, indexProviderCollection, typeof(BaseIndexProvider));
+                        IndexProviderCollection = indexProviderCollection.Cast<IIndexer>();
 
-                        SearchProviderCollection = new SearchProviderCollection();
-                        ProvidersHelper.InstantiateProviders(_settings.SearchProviders.Providers, SearchProviderCollection, typeof(BaseSearchProvider));
+                        var searchProviderCollection = new SearchProviderCollection();
+                        ProvidersHelper.InstantiateProviders(_settings.SearchProviders.Providers, searchProviderCollection, typeof(BaseSearchProvider));
+                        SearchProviderCollection = searchProviderCollection.Cast<ISearcher>();
 
                         //set the default
                         if (!string.IsNullOrEmpty(_settings.SearchProviders.DefaultProvider))
-                             DefaultSearchProvider = SearchProviderCollection[_settings.SearchProviders.DefaultProvider];
+                            DefaultSearchProvider = searchProviderCollection[_settings.SearchProviders.DefaultProvider];
 
                         if (DefaultSearchProvider == null)
                             throw new ProviderException("Unable to load default search provider");
@@ -75,6 +103,10 @@ namespace Examine
                 }
             }
         }
+
+     
+
+        #region IIndexer Members
 
         /// <summary>
         /// Reindex nodes for the providers specified
@@ -92,12 +124,10 @@ namespace Examine
         /// </summary>
         /// <param name="id"></param>
         /// <param name="providers"></param>
-        public void DeleteFromIndex(string id, IEnumerable<BaseIndexProvider> providers)
+        public void DeleteFromIndex(string id, IEnumerable<IIndexer> providers)
         {
             DeleteFromIndexForProviders(id, providers);
         }
-
-        #region IIndexer Members
 
         /// <summary>
         /// Reindex nodes for all providers
@@ -126,7 +156,7 @@ namespace Examine
             DeleteFromIndexForProviders(id, IndexProviderCollection);
         }    
 
-        private static void DeleteFromIndexForProviders(string nodeId, IEnumerable<BaseIndexProvider> providers)
+        private static void DeleteFromIndexForProviders(string nodeId, IEnumerable<IIndexer> providers)
         {
             foreach (var provider in providers)
             {
@@ -147,7 +177,6 @@ namespace Examine
         }
 
         #endregion
-
 
         #region ISearcher Members
 

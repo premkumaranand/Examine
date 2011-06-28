@@ -11,7 +11,7 @@ namespace Examine.Config
     /// </summary>
     public class ExamineSettings : ConfigurationSection
     {
-        private const string SectionName = "Examine";
+        private const string SectionName = "examine.settings";
 
         /// <summary>
         /// Gets the instance of the Examine settings.
