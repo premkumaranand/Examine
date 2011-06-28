@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Xml.Linq;
+using Amib.Threading;
 using Examine;
 using Examine.Providers;
 using Lucene.Net.Analysis;
@@ -44,7 +45,8 @@ namespace Examine.LuceneEngine.Providers
         /// </param>
         public LuceneIndexer(IEnumerable<IndexSet> indexSetConfig)
         {
-            WorkerThread_DoWorkEventHandler = new DoWorkEventHandler(WorkerThread_DoWork);
+            //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
+
             OptimizationCommitThreshold = 100;
             _indexSetConfiguration = indexSetConfig;
         }
@@ -58,8 +60,8 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="synchronizationType"></param>
         public LuceneIndexer(IndexCriteria indexerData, DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType)
             : base(indexerData)
-        {             
-            WorkerThread_DoWorkEventHandler = new DoWorkEventHandler(WorkerThread_DoWork);
+        {
+            //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
 
             //set up our folders based on the index path
             WorkingFolder = workingFolder;
@@ -79,7 +81,7 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// This is our threadsafe queue of items which can be read by our background worker to process the queue
         /// </summary>
-        private static readonly ThreadSafeList<IndexOperation> AsyncQueue = new ThreadSafeList<IndexOperation>();
+        private readonly ThreadSafeList<IndexOperation> _asyncQueue = new ThreadSafeList<IndexOperation>();
 
         #region Initialize
 
@@ -233,10 +235,20 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Used for double check locking during an index operation
         /// </summary>
-        private bool _isIndexing = false;
+        private volatile bool _isIndexing = false;
 
-        private DoWorkEventHandler WorkerThread_DoWorkEventHandler;
-        private BackgroundWorkerSlim _workerThread;
+        /// <summary>
+        /// Used to cancel the async operation
+        /// </summary>
+        private volatile bool _isCancelling = false;
+
+        /// <summary>
+        /// Used to run the indexing async
+        /// </summary>
+        private SmartThreadPool _threadPool;
+
+        //private readonly ThreadStart _workerThreadDoWorkEventHandler;
+        //private Thread _workerThread;
 
         /// <summary>
         /// We need an internal searcher used to search against our own index.
@@ -248,9 +260,16 @@ namespace Examine.LuceneEngine.Providers
 
         #region Properties
 
-        protected internal bool IsAsyncBusy
+        /// <summary>
+        /// Returns true if the thread is alive or if the indexing flag is still true
+        /// </summary>
+        protected internal bool IsBusy
         {
-            get { return _workerThread != null ? _workerThread.IsBusy : false; }
+            get
+            {
+                //return _workerThread.IsAlive || _isIndexing;
+                return !_threadPool.IsIdle || _isIndexing;
+            }
         }
         
         /// <summary>
@@ -1322,54 +1341,46 @@ namespace Examine.LuceneEngine.Providers
 
         private void InitializeBackgroundWorker(IEnumerable<IndexOperation> buffer)
         {
-            if (_workerThread != null)
+            if (_threadPool != null)
             {
                 //if this is not the master indexer anymore... perhaps another server has taken over somehow...
                 if (!ExecutiveIndex.IsExecutiveMachine)
                 {
-                    //stop the timer, remove event handlers and close
-                    _workerThread.CancelAsync();
-                    _workerThread.DoWork -= WorkerThread_DoWork;
-                    _workerThread.Dispose();
-                    _workerThread = null;
-
+                    //this will abort the thread once it's latest processing has stopped.
+                    _isCancelling = true;
                     return;
                 }
             }
             else
             {
-                _workerThread = new BackgroundWorkerSlim();
-                _workerThread.DoWork += WorkerThread_DoWork;
+                _threadPool = new SmartThreadPool(60, 1);
             }
 
             //re-index everything in the buffer, add everything safely to our threadsafe queue
             foreach (var b in buffer)
             {
-                AsyncQueue.Add(b);
+                _asyncQueue.Add(b);
             }
 
             //don't run the worker if it's currently running since it will just pick up the rest of the queue during its normal operation
-            if (!_workerThread.IsBusy)
+            if (!IsBusy)
             {
-                _workerThread.RunWorkerAsync();
+                _threadPool.QueueWorkItem(WorkerThreadDoWork);
             }
 
         }
 
-
         /// <summary>
         /// Uses a background worker thread to do all of the indexing
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        void WorkerThread_DoWork(object sender, DoWorkEventArgs e)
+        void WorkerThreadDoWork()
         {
             //keep processing until it is complete
             var numProcessedItems = 0;
             do
             {
-                numProcessedItems = ForceProcessQueueItems(AsyncQueue);
-            } while (numProcessedItems > 0);
+                numProcessedItems = ForceProcessQueueItems(_asyncQueue);
+            } while (!_isCancelling && numProcessedItems > 0);
         }
 
 
@@ -1585,7 +1596,11 @@ namespace Examine.LuceneEngine.Providers
         {
             this.CheckDisposed();
             if (disposing)
-                this._workerThread.Dispose();
+            {
+                _threadPool.Dispose();
+                //this._workerThread.Abort();
+            }
+                
         }
 
         #endregion

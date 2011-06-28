@@ -91,7 +91,7 @@ namespace Examine.Test.Index
                 });
             }
 
-            while(indexer.IsAsyncBusy)
+            while(indexer.IsBusy)
             {
                 Thread.Sleep(1000);
             }
@@ -133,7 +133,7 @@ namespace Examine.Test.Index
             //add them all at once
             indexer.ReIndexNodes("TestCategory", toIndex.ToArray());
 
-            while(indexer.IsAsyncBusy)
+            while(indexer.IsBusy)
             {
                 Thread.Sleep(1000);
             }
@@ -144,6 +144,60 @@ namespace Examine.Test.Index
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
 
             Assert.AreEqual(20, results.Count());
+        }
+
+        /// <summary>
+        /// This tests that the async thread operation is able to run again after it had already completed once
+        /// </summary>
+        [TestMethod]
+        public void Indexing_Background_Worker_Indexes_Many_Waits_Then_Indexes_More()
+        {
+            //get an async indexer
+
+            _currentFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
+            _currentFolder.Create();
+            var indexer = new LuceneIndexer(
+                new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
+                _currentFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), SynchronizationType.AsyncBackgroundWorker);
+
+            for (var i = 0; i < 5; i++)
+            {
+                indexer.ReIndexNodes("TestCategory", new IndexItem
+                {
+                    Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
+                    Id = "test" + i,
+                    ItemType = "test"
+                });
+            }
+            while (indexer.IsBusy)
+            {
+                Thread.Sleep(1000);
+            }
+            
+            var searcher = GetSearcher(_currentFolder);
+            var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
+            Assert.AreEqual(5, results.Count());
+
+            //now we want to re-index again 
+            Thread.Sleep(2000);
+
+            for (var i = 5; i < 10; i++)
+            {
+                indexer.ReIndexNodes("TestCategory", new IndexItem
+                {
+                    Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
+                    Id = "test" + i,
+                    ItemType = "test"
+                });
+            }
+            while (indexer.IsBusy)
+            {
+                Thread.Sleep(1000);
+            }
+
+            results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
+            Assert.AreEqual(10, results.Count());
         }
 
         private ISearcher GetSearcher(DirectoryInfo folder)
