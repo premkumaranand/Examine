@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Examine</RootNamespace>
     <AssemblyName>Examine</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>SAK</SccProjectName>
     <SccLocalPath>SAK</SccLocalPath>
@@ -36,6 +36,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -113,7 +114,6 @@
     <Compile Include="INodeEventArgs.cs" />
     <Compile Include="ISearchResults.cs" />
     <Compile Include="LuceneEngine\AllHitsCollector.cs" />
-    <Compile Include="LuceneEngine\BaseLock.cs" />
     <Compile Include="LuceneEngine\Config\IndexSets.cs" />
     <Compile Include="LuceneEngine\Config\IndexFieldDefinition.cs" />
     <Compile Include="LuceneEngine\Config\IndexFieldCollection.cs" />
@@ -126,8 +126,6 @@
     <Compile Include="LuceneEngine\FileSystemExtensions.cs" />
     <Compile Include="LuceneEngine\IndexerExecutive.cs" />
     <Compile Include="LuceneEngine\IndexerExecutiveAssignedEventArgs.cs" />
-    <Compile Include="LuceneEngine\IThreadSafeDictionary.cs" />
-    <Compile Include="LuceneEngine\Locks.cs" />
     <Compile Include="LuceneEngine\LuceneExtensions.cs" />
     <Compile Include="LuceneEngine\Providers\BaseLuceneSearcher.cs" />
     <Compile Include="LuceneEngine\Providers\LuceneIndexer.cs" />
@@ -135,8 +133,6 @@
     <Compile Include="LuceneEngine\Providers\MultiIndexSearcher.cs" />
     <Compile Include="LuceneEngine\Providers\SynchronizationType.cs" />
     <Compile Include="LuceneEngine\ReaderStatus.cs" />
-    <Compile Include="LuceneEngine\ReadLock.cs" />
-    <Compile Include="LuceneEngine\ReadOnlyLock.cs" />
     <Compile Include="LuceneEngine\SearchCriteria\ExamineValue.cs" />
     <Compile Include="LuceneEngine\SearchCriteria\LuceneBooleanOperation.cs" />
     <Compile Include="LuceneEngine\SearchCriteria\LuceneQuery.cs" />
@@ -145,9 +141,6 @@
     <Compile Include="LuceneEngine\SearchResults.cs" />
     <Compile Include="LuceneEngine\SerializableDictionary.cs" />
     <Compile Include="LuceneEngine\SerializableDictionaryExtensions.cs" />
-    <Compile Include="LuceneEngine\ThreadSafeDictionary.cs" />
-    <Compile Include="LuceneEngine\ThreadSafeList.cs" />
-    <Compile Include="LuceneEngine\WriteLock.cs" />
     <Compile Include="SearchCriteria\BooleanOperation.cs" />
     <Compile Include="SearchCriteria\DateResolution.cs" />
     <Compile Include="SearchCriteria\IBooleanOperation.cs" />

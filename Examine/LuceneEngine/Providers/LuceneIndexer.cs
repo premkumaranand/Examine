@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -81,7 +82,7 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// This is our threadsafe queue of items which can be read by our background worker to process the queue
         /// </summary>
-        private readonly ThreadSafeList<IndexOperation> _asyncQueue = new ThreadSafeList<IndexOperation>();
+        private readonly ConcurrentQueue<IndexOperation> _asyncQueue = new ConcurrentQueue<IndexOperation>();
 
         #region Initialize
 
@@ -1086,8 +1087,11 @@ namespace Examine.LuceneEngine.Providers
             switch (SynchronizationType)
             {
                 case SynchronizationType.SingleThreaded:
-                    var list = new ThreadSafeList<IndexOperation>();
-                    list.AddRange(buffer);
+                    var list = new ConcurrentQueue<IndexOperation>();
+                    foreach(var i in buffer)
+                    {
+                        list.Enqueue(i);    
+                    }
                     ForceProcessQueueItems(list);
                     break;
                 case SynchronizationType.AsyncBackgroundWorker:
@@ -1112,7 +1116,7 @@ namespace Examine.LuceneEngine.Providers
         /// that the correct machine processes the items into the index. SafelyQueueItems calls this method
         /// if it confirms that this machine is the one to process the queue.
         /// </remarks>
-        protected int ForceProcessQueueItems(ThreadSafeList<IndexOperation> buffer)
+        protected int ForceProcessQueueItems(ConcurrentQueue<IndexOperation> buffer)
         {
             try
             {
@@ -1160,10 +1164,10 @@ namespace Examine.LuceneEngine.Providers
                             //they were added so shouldn't need to sort anything
 
                             //we need to iterate like this because our threadsafe list doesn't allow enumeration
-                            while (buffer.Count > 0)
-                            {
-                                var item = buffer[0];
+                            IndexOperation item;
 
+                            while (buffer.TryDequeue(out item))
+                            {
                                 switch (item.Operation)
                                 {
                                     case IndexOperationType.Add:
@@ -1190,11 +1194,7 @@ namespace Examine.LuceneEngine.Providers
                                         break;
                                     default:
                                         throw new ArgumentOutOfRangeException();
-                                }
-
-                                //remove the item from the buffer
-                                buffer.Remove(item);
-                                
+                                }                                
                             }
 
                             //raise the completed event
@@ -1359,7 +1359,7 @@ namespace Examine.LuceneEngine.Providers
             //re-index everything in the buffer, add everything safely to our threadsafe queue
             foreach (var b in buffer)
             {
-                _asyncQueue.Add(b);
+                _asyncQueue.Enqueue(b);
             }
 
             //don't run the worker if it's currently running since it will just pick up the rest of the queue during its normal operation
