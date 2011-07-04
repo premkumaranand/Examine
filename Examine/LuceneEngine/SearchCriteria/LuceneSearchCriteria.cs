@@ -138,82 +138,83 @@ namespace Examine.LuceneEngine.SearchCriteria
 
         internal protected IBooleanOperation IdInternal(string id, BooleanClause.Occur occurance)
         {
-            //use a query parser (which uses the analyzer) to build up the field query which we want
-            Query.Add(this.QueryParser.GetFieldQuery(LuceneIndexer.IndexNodeIdFieldName, id), occurance);
+            //parse a raw query so that the normal analyzer doesn't parse out the string id
+            var nodeIdQuery = ParseRawQuery(LuceneIndexer.IndexNodeIdFieldName + ":" + Lucene.Net.QueryParsers.QueryParser.Escape(id));
+            Query.Add(nodeIdQuery, occurance);
 
             return new LuceneBooleanOperation(this);
         }
 
-        /// <summary>
-        /// Query on the NodeName
-        /// </summary>
-        /// <param name="nodeName">Name of the node.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation NodeName(string nodeName)
-        {
-            Enforcer.ArgumentNotNull(nodeName, "nodeName");
-            return NodeName(new ExamineValue(Examineness.Explicit, nodeName));
-        }
+        ///// <summary>
+        ///// Query on the NodeName
+        ///// </summary>
+        ///// <param name="nodeName">Name of the node.</param>
+        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
+        //public IBooleanOperation NodeName(string nodeName)
+        //{
+        //    Enforcer.ArgumentNotNull(nodeName, "nodeName");
+        //    return NodeName(new ExamineValue(Examineness.Explicit, nodeName));
+        //}
 
-        /// <summary>
-        /// Query on the NodeName
-        /// </summary>
-        /// <param name="nodeName">Name of the node.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation NodeName(IExamineValue nodeName)
-        {
-            Enforcer.ArgumentNotNull(nodeName, "nodeName");
-            return this.NodeNameInternal(nodeName, _occurance);
-        }
+        ///// <summary>
+        ///// Query on the NodeName
+        ///// </summary>
+        ///// <param name="nodeName">Name of the node.</param>
+        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
+        //public IBooleanOperation NodeName(IExamineValue nodeName)
+        //{
+        //    Enforcer.ArgumentNotNull(nodeName, "nodeName");
+        //    return this.NodeNameInternal(nodeName, _occurance);
+        //}
 
-        internal protected IBooleanOperation NodeNameInternal(IExamineValue examineValue, BooleanClause.Occur occurance)
-        {
-            return this.FieldInternal(NodeNameField, examineValue, occurance);
-        }
+        //internal protected IBooleanOperation NodeNameInternal(IExamineValue examineValue, BooleanClause.Occur occurance)
+        //{
+        //    return this.FieldInternal(NodeNameField, examineValue, occurance);
+        //}
 
-        /// <summary>
-        /// Query on the NodeTypeAlias
-        /// </summary>
-        /// <param name="nodeTypeAlias">The node type alias.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation NodeTypeAlias(string nodeTypeAlias)
-        {
-            Enforcer.ArgumentNotNull(nodeTypeAlias, "nodeTypeAlias");            
-            return this.NodeTypeAlias(new ExamineValue(Examineness.Explicit, nodeTypeAlias));
-        }
+        ///// <summary>
+        ///// Query on the NodeTypeAlias
+        ///// </summary>
+        ///// <param name="nodeTypeAlias">The node type alias.</param>
+        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
+        //public IBooleanOperation NodeTypeAlias(string nodeTypeAlias)
+        //{
+        //    Enforcer.ArgumentNotNull(nodeTypeAlias, "nodeTypeAlias");            
+        //    return this.NodeTypeAlias(new ExamineValue(Examineness.Explicit, nodeTypeAlias));
+        //}
 
-        /// <summary>
-        /// Query on the NodeTypeAlias
-        /// </summary>
-        /// <param name="nodeTypeAlias">The node type alias.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation NodeTypeAlias(IExamineValue nodeTypeAlias)
-        {
-            Enforcer.ArgumentNotNull(nodeTypeAlias, "nodeTypeAlias");
-            return this.NodeTypeAliasInternal(nodeTypeAlias, _occurance);
-        }
+        ///// <summary>
+        ///// Query on the NodeTypeAlias
+        ///// </summary>
+        ///// <param name="nodeTypeAlias">The node type alias.</param>
+        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
+        //public IBooleanOperation NodeTypeAlias(IExamineValue nodeTypeAlias)
+        //{
+        //    Enforcer.ArgumentNotNull(nodeTypeAlias, "nodeTypeAlias");
+        //    return this.NodeTypeAliasInternal(nodeTypeAlias, _occurance);
+        //}
 
-        internal protected IBooleanOperation NodeTypeAliasInternal(IExamineValue examineValue, BooleanClause.Occur occurance)
-        {
-            //force lower case
-            var eVal = new ExamineValue(examineValue.Examineness, examineValue.Value.ToLower(), examineValue.Level);
-            //don't use the query parser for this operation, it needs to match exact
-            return this.FieldInternal(NodeTypeAliasField, eVal, occurance, false);
-        }
+        //internal protected IBooleanOperation NodeTypeAliasInternal(IExamineValue examineValue, BooleanClause.Occur occurance)
+        //{
+        //    //force lower case
+        //    var eVal = new ExamineValue(examineValue.Examineness, examineValue.Value.ToLower(), examineValue.Level);
+        //    //don't use the query parser for this operation, it needs to match exact
+        //    return this.FieldInternal(NodeTypeAliasField, eVal, occurance, false);
+        //}
 
         /// <summary>
         /// Query on the Parent ID
         /// </summary>
         /// <param name="id">The id of the parent.</param>
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation ParentId(int id)
+        public IBooleanOperation ParentId(string id)
         {
             return this.ParentIdInternal(id, _occurance);
         }
 
-        internal protected IBooleanOperation ParentIdInternal(int id, BooleanClause.Occur occurance)
+        internal protected IBooleanOperation ParentIdInternal(string id, BooleanClause.Occur occurance)
         {
-            Query.Add(this.QueryParser.GetFieldQuery(ParentIdField, id.ToString()), occurance);
+            Query.Add(this.QueryParser.GetFieldQuery(ParentIdField, Lucene.Net.QueryParsers.QueryParser.Escape(id)), occurance);
 
             return new LuceneBooleanOperation(this);
         }

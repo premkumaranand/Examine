@@ -19,36 +19,36 @@ namespace Examine.SearchCriteria
         /// <param name="id">The id.</param>
         /// <returns></returns>
         IBooleanOperation Id(string id);
-        /// <summary>
-        /// Query on the NodeName
-        /// </summary>
-        /// <param name="nodeName">Name of the node.</param>
-        /// <returns></returns>
-        IBooleanOperation NodeName(string nodeName);
-        /// <summary>
-        /// Query on the NodeName
-        /// </summary>
-        /// <param name="nodeName">Name of the node.</param>
-        /// <returns></returns>
-        IBooleanOperation NodeName(IExamineValue nodeName);
-        /// <summary>
-        /// Query on the NodeTypeAlias
-        /// </summary>
-        /// <param name="nodeTypeAlias">The node type alias.</param>
-        /// <returns></returns>
-        IBooleanOperation NodeTypeAlias(string nodeTypeAlias);
-        /// <summary>
-        /// Query on the NodeTypeAlias
-        /// </summary>
-        /// <param name="nodeTypeAlias">The node type alias.</param>
-        /// <returns></returns>
-        IBooleanOperation NodeTypeAlias(IExamineValue nodeTypeAlias);
+        ///// <summary>
+        ///// Query on the NodeName
+        ///// </summary>
+        ///// <param name="nodeName">Name of the node.</param>
+        ///// <returns></returns>
+        //IBooleanOperation NodeName(string nodeName);
+        ///// <summary>
+        ///// Query on the NodeName
+        ///// </summary>
+        ///// <param name="nodeName">Name of the node.</param>
+        ///// <returns></returns>
+        //IBooleanOperation NodeName(IExamineValue nodeName);
+        ///// <summary>
+        ///// Query on the NodeTypeAlias
+        ///// </summary>
+        ///// <param name="nodeTypeAlias">The node type alias.</param>
+        ///// <returns></returns>
+        //IBooleanOperation NodeTypeAlias(string nodeTypeAlias);
+        ///// <summary>
+        ///// Query on the NodeTypeAlias
+        ///// </summary>
+        ///// <param name="nodeTypeAlias">The node type alias.</param>
+        ///// <returns></returns>
+        //IBooleanOperation NodeTypeAlias(IExamineValue nodeTypeAlias);
         /// <summary>
         /// Query on the Parent ID
         /// </summary>
         /// <param name="id">The id of the parent.</param>
         /// <returns></returns>
-        IBooleanOperation ParentId(int id);
+        IBooleanOperation ParentId(string id);
         /// <summary>
         /// Query on the specified field
         /// </summary>

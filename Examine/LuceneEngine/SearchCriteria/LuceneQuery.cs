@@ -44,32 +44,32 @@ namespace Examine.LuceneEngine.SearchCriteria
             return this.search.IdInternal(id, this.occurance);
         }
 
-        /// <summary>
-        /// Query on the NodeName
-        /// </summary>
-        /// <param name="nodeName">Name of the node.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation NodeName(string nodeName)
-        {
-            return this.search.NodeNameInternal(new ExamineValue(Examineness.Explicit, nodeName), occurance);
-        }
+        ///// <summary>
+        ///// Query on the NodeName
+        ///// </summary>
+        ///// <param name="nodeName">Name of the node.</param>
+        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
+        //public IBooleanOperation NodeName(string nodeName)
+        //{
+        //    return this.search.NodeNameInternal(new ExamineValue(Examineness.Explicit, nodeName), occurance);
+        //}
 
-        /// <summary>
-        /// Query on the NodeTypeAlias
-        /// </summary>
-        /// <param name="nodeTypeAlias">The node type alias.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation NodeTypeAlias(string nodeTypeAlias)
-        {
-            return this.search.NodeTypeAliasInternal(new ExamineValue(Examineness.Explicit, nodeTypeAlias), occurance);
-        }
+        ///// <summary>
+        ///// Query on the NodeTypeAlias
+        ///// </summary>
+        ///// <param name="nodeTypeAlias">The node type alias.</param>
+        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
+        //public IBooleanOperation NodeTypeAlias(string nodeTypeAlias)
+        //{
+        //    return this.search.NodeTypeAliasInternal(new ExamineValue(Examineness.Explicit, nodeTypeAlias), occurance);
+        //}
 
         /// <summary>
         /// Query on the Parent ID
         /// </summary>
         /// <param name="id">The id of the parent.</param>
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation ParentId(int id)
+        public IBooleanOperation ParentId(string id)
         {
             return this.search.ParentIdInternal(id, occurance);
         }
@@ -258,25 +258,25 @@ namespace Examine.LuceneEngine.SearchCriteria
             return this.search.RangeInternal(fieldName, start, end, includeLower, includeUpper, occurance);
         }
 
-        /// <summary>
-        /// Query on the NodeName
-        /// </summary>
-        /// <param name="nodeName">Name of the node.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation NodeName(IExamineValue nodeName)
-        {
-            return this.search.NodeNameInternal(nodeName, occurance);
-        }
+        ///// <summary>
+        ///// Query on the NodeName
+        ///// </summary>
+        ///// <param name="nodeName">Name of the node.</param>
+        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
+        //public IBooleanOperation NodeName(IExamineValue nodeName)
+        //{
+        //    return this.search.NodeNameInternal(nodeName, occurance);
+        //}
 
-        /// <summary>
-        /// Query on the NodeTypeAlias
-        /// </summary>
-        /// <param name="nodeTypeAlias">The node type alias.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation NodeTypeAlias(IExamineValue nodeTypeAlias)
-        {
-            return this.search.NodeTypeAliasInternal(nodeTypeAlias, occurance);
-        }
+        ///// <summary>
+        ///// Query on the NodeTypeAlias
+        ///// </summary>
+        ///// <param name="nodeTypeAlias">The node type alias.</param>
+        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
+        //public IBooleanOperation NodeTypeAlias(IExamineValue nodeTypeAlias)
+        //{
+        //    return this.search.NodeTypeAliasInternal(nodeTypeAlias, occurance);
+        //}
 
         /// <summary>
         /// Query on the specified field
