@@ -206,7 +206,7 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// The prefix added to a field when it is included in the index for sorting
         /// </summary>
-        public const string SortedFieldNamePrefix = "__Sort_";
+        public const string SortedFieldNamePrefix = SpecialFieldPrefix + "Sort_";
 
         /// <summary>
         /// Specifies how many index commits are performed before running an optimization
@@ -216,12 +216,12 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Used to store a non-tokenized key for the document
         /// </summary>
-        public const string IndexCategoryFieldName = "__IndexCategory";
+        public const string IndexCategoryFieldName = SpecialFieldPrefix + "IndexCategory";
 
         /// <summary>
         /// Used to store a non-tokenized type for the document
         /// </summary>
-        public const string IndexNodeIdFieldName = "__NodeId";
+        public const string IndexNodeIdFieldName = SpecialFieldPrefix + "NodeId";
 
         /// <summary>
         /// Used to perform thread locking
