@@ -777,7 +777,7 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         /// <param name="fieldName"></param>
         /// <returns></returns>
-        protected virtual FieldIndexTypes GetPolicy(string fieldName)
+        protected virtual FieldIndexTypes GetPolicy(string fieldName, string indexCategory)
         {
             return FieldIndexTypes.ANALYZED;
         }
@@ -839,7 +839,7 @@ namespace Examine.LuceneEngine.Providers
 
             foreach (var x in validFields)
             {
-                var ourPolicyType = GetPolicy(x.Key);
+                var ourPolicyType = GetPolicy(x.Key, fields[IndexCategoryFieldName]);
                 var lucenePolicy = TranslateFieldIndexTypeToLuceneType(ourPolicyType);
 
                 var indexedFields = indexSetFields.Where(o => o.Name == x.Key);
