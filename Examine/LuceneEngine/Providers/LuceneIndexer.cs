@@ -214,7 +214,7 @@ namespace Examine.LuceneEngine.Providers
         public int OptimizationCommitThreshold { get; internal set; }
 
         /// <summary>
-        /// Used to store a non-tokenized key for the document
+        /// Used to store a non-tokenized category for the document
         /// </summary>
         public const string IndexCategoryFieldName = SpecialFieldPrefix + "IndexCategory";
 
@@ -487,7 +487,7 @@ namespace Examine.LuceneEngine.Providers
                         {
                             Fields = new Dictionary<string, string> { { IndexNodeIdFieldName, id } },
                             Id = id,
-                            ItemType = string.Empty
+                            ItemCategory = string.Empty
                         },
                     Operation = IndexOperationType.Delete
                 };
@@ -675,12 +675,12 @@ namespace Examine.LuceneEngine.Providers
         {
             //check if this document is of a correct type of node type alias
             if (IndexerData.IncludeItemTypes.Count() > 0)
-                if (!IndexerData.IncludeItemTypes.Contains(item.ItemType))
+                if (!IndexerData.IncludeItemTypes.Contains(item.ItemCategory))
                     return false;
 
             //if this node type is part of our exclusion list, do not validate
             if (IndexerData.ExcludeItemTypes.Count() > 0)
-                if (IndexerData.ExcludeItemTypes.Contains(item.ItemType))
+                if (IndexerData.ExcludeItemTypes.Contains(item.ItemCategory))
                     return false;
 
             return true;
@@ -1240,28 +1240,28 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         /// <param name="fields"></param>
         /// <param name="id"></param>
-        /// <param name="itemType"></param>
+        /// <param name="itemCategory"></param>
         /// <param name="buffer"></param>
-        protected void BufferAddIndexQueueItem(IDictionary<string, string> fields, string id, string itemType, IList<IndexOperation> buffer)
+        protected void BufferAddIndexQueueItem(IDictionary<string, string> fields, string id, string itemCategory, IList<IndexOperation> buffer)
         {
             //ensure the special fields are added to the dictionary to be saved to file
-            EnsureSpecialFields(fields, id, itemType);
+            EnsureSpecialFields(fields, id, itemCategory);
 
             //ok, everything is ready to go, add it to the buffer
-            buffer.Add(new IndexOperation { Item = new IndexItem { Fields = fields, Id = id, ItemType = itemType }, Operation = IndexOperationType.Add });
+            buffer.Add(new IndexOperation { Item = new IndexItem { Fields = fields, Id = id, ItemCategory = itemCategory }, Operation = IndexOperationType.Add });
         }
 
         #endregion
 
         #region Private
 
-        private void EnsureSpecialFields(IDictionary<string, string> fields, string id, string type)
+        private void EnsureSpecialFields(IDictionary<string, string> fields, string id, string category)
         {
             //ensure the special fields are added to the dictionary to be saved to file
             if (!fields.ContainsKey(IndexNodeIdFieldName))
                 fields.Add(IndexNodeIdFieldName, id.ToString());
             if (!fields.ContainsKey(IndexCategoryFieldName))
-                fields.Add(IndexCategoryFieldName, type.ToString());
+                fields.Add(IndexCategoryFieldName, category.ToString());
         }
 
         /// <summary>

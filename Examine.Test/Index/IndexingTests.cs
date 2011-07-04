@@ -31,7 +31,7 @@ namespace Examine.Test.Index
                 {
                     Fields = new Dictionary<string, string> {{"Field1", "hello world"}},
                     Id = "test1",
-                    ItemType = "test"
+                    ItemCategory = "test"
                 });
 
             //assert
@@ -56,7 +56,7 @@ namespace Examine.Test.Index
             {
                 Fields = new Dictionary<string, string> { { "Field1", "hello world" } },
                 Id = "test1",
-                ItemType = "test"
+                ItemCategory = "test"
             });
 
             //assert
@@ -87,7 +87,7 @@ namespace Examine.Test.Index
                 {
                     Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
                     Id = "test" + i,
-                    ItemType = "test"
+                    ItemCategory = "test"
                 });
             }
 
@@ -124,7 +124,7 @@ namespace Examine.Test.Index
                     {
                         Fields = new Dictionary<string, string> {{"Field1", "hello world " + i}},
                         Id = "test" + i,
-                        ItemType = "test"
+                        ItemCategory = "test"
                     });
             }
             
@@ -167,7 +167,7 @@ namespace Examine.Test.Index
                 {
                     Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
                     Id = "test" + i,
-                    ItemType = "test"
+                    ItemCategory = "test"
                 });
             }
             while (indexer.IsBusy)
@@ -188,7 +188,7 @@ namespace Examine.Test.Index
                 {
                     Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
                     Id = "test" + i,
-                    ItemType = "test"
+                    ItemCategory = "test"
                 });
             }
             while (indexer.IsBusy)

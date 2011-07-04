@@ -31,6 +31,6 @@ namespace Examine
         /// <value>
         /// The type of the item.
         /// </value>
-        public string ItemType { get; set; }
+        public string ItemCategory { get; set; }
     }
 }
