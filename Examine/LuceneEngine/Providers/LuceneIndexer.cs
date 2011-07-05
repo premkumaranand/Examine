@@ -236,17 +236,25 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Used for double check locking during an index operation
         /// </summary>
-        private volatile bool _isIndexing = false;
+        private bool _isIndexing = false;
 
+        private readonly object _cancelLocker = new object();
         /// <summary>
         /// Used to cancel the async operation
         /// </summary>
-        private volatile bool _isCancelling = false;
+        private bool _isCancelling = false;
 
-        /// <summary>
-        /// Used to run the indexing async
-        /// </summary>
-        private SmartThreadPool _threadPool;
+        //private readonly object _shouldProcessLock = new object();
+        ///// <summary>
+        ///// Used to notify the worker thread to run an iteration
+        ///// </summary>
+        //private bool _shouldProcess = false;
+
+        ///// <summary>
+        ///// Used to run the indexing async
+        ///// </summary>
+        private static SmartThreadPool _threadPool;
+        private static readonly object CreateThreadPoolLock = new object();
 
         //private readonly ThreadStart _workerThreadDoWorkEventHandler;
         //private Thread _workerThread;
@@ -268,8 +276,9 @@ namespace Examine.LuceneEngine.Providers
         {
             get
             {
+                return _isIndexing;
                 //return _workerThread.IsAlive || _isIndexing;
-                return !_threadPool.IsIdle || _isIndexing;
+                //return !_threadPool.IsIdle || _isIndexing;
             }
         }
         
@@ -352,8 +361,17 @@ namespace Examine.LuceneEngine.Providers
         {
             if (resetIndexingFlag)
             {
-                //reset our volatile flag... something else funny is going on but we don't want this to prevent ALL future operations
-                _isIndexing = false;
+                if (_isIndexing)
+                {
+                    lock(_indexerLocker)
+                    {
+                        if(_isIndexing)
+                        {
+                            //reset our  flag... something else funny is going on but we don't want this to prevent ALL future operations
+                            _isIndexing = false;            
+                        }
+                    }
+                }
             }
 
             OnIndexingError(e);
@@ -1341,19 +1359,41 @@ namespace Examine.LuceneEngine.Providers
 
         private void InitializeBackgroundWorker(IEnumerable<IndexOperation> buffer)
         {
-            if (_threadPool != null)
+            if(_threadPool == null)
             {
-                //if this is not the master indexer anymore... perhaps another server has taken over somehow...
-                if (!ExecutiveIndex.IsExecutiveMachine)
+                lock(CreateThreadPoolLock)
                 {
-                    //this will abort the thread once it's latest processing has stopped.
-                    _isCancelling = true;
-                    return;
+                    var start = new STPStartInfo
+                        {
+                            UseCallerCallContext = false,
+                            UseCallerHttpContext = false,
+                            MaxWorkerThreads = 5
+                        };
+                    _threadPool = new SmartThreadPool(start);
                 }
             }
-            else
+
+            //if (_workerThread == null)
+            //{
+            //    _workerThread = new Thread(_workerThreadDoWorkEventHandler) {IsBackground = true};                             
+            //}
+
+            //if this is not the master indexer anymore... perhaps another server has taken over somehow...
+            if (!ExecutiveIndex.IsExecutiveMachine)
             {
-                _threadPool = new SmartThreadPool(60, 1);
+                //this will abort the thread once it's latest processing has stopped.
+                if (!_isCancelling)
+                {
+                    lock(_cancelLocker)
+                    {
+                        if(!_isCancelling)
+                        {
+                            _isCancelling = true;            
+                        }
+                    }
+                }
+                
+                return;
             }
 
             //re-index everything in the buffer, add everything safely to our threadsafe queue
@@ -1365,16 +1405,34 @@ namespace Examine.LuceneEngine.Providers
             //don't run the worker if it's currently running since it will just pick up the rest of the queue during its normal operation
             if (!IsBusy)
             {
+                //_workerThread.Start();
+                //_threadPool.QueueWorkItem(new WorkItemInfo {UseCallerHttpContext = false, UseCallerCallContext = false}, WorkerThreadDoWork);
                 _threadPool.QueueWorkItem(WorkerThreadDoWork);
             }
+
+            //if (!_shouldProcess)
+            //{
+            //    lock (_shouldProcessLock)
+            //    {
+            //        if (!_shouldProcess)
+            //        {
+            //            _shouldProcess = true;
+            //        }
+            //    }
+            //}
 
         }
 
         /// <summary>
         /// Uses a background worker thread to do all of the indexing
         /// </summary>
+        /// <remarks>>
+        /// This will continue to run forever until cancelled is called
+        /// </remarks>
         void WorkerThreadDoWork()
         {
+            //Thread.Sleep(10000);
+
             //keep processing until it is complete
             var numProcessedItems = 0;
             do
@@ -1382,6 +1440,37 @@ namespace Examine.LuceneEngine.Providers
                 numProcessedItems = ForceProcessQueueItems(_asyncQueue);
             } while (!_isCancelling && numProcessedItems > 0);
         }
+
+        ///// <summary>
+        ///// Uses a background worker thread to do all of the indexing
+        ///// </summary>
+        ///// <remarks>>
+        ///// This will continue to run forever until cancelled is called
+        ///// </remarks>
+        //void WorkerThreadDoWork()
+        //{
+        //    while(!_isCancelling)
+        //    {
+        //        if (!_shouldProcess)
+        //            Thread.Sleep(1000);
+        //        else
+        //        {
+        //            Thread.Sleep(10000);
+
+        //            //keep processing until it is complete
+        //            var numProcessedItems = 0;
+        //            do
+        //            {
+        //                numProcessedItems = ForceProcessQueueItems(_asyncQueue);
+        //            } while (!_isCancelling && numProcessedItems > 0);
+
+        //            //cease processing 
+        //            _shouldProcess = false;    
+        //        }                
+        //    }
+            
+        //    //return null;
+        //}
 
 
         /// <summary>
@@ -1597,7 +1686,22 @@ namespace Examine.LuceneEngine.Providers
             this.CheckDisposed();
             if (disposing)
             {
-                _threadPool.Dispose();
+                if (!_isCancelling)
+                {
+                    lock (_cancelLocker)
+                    {
+                        if (!_isCancelling)
+                        {
+                            _isCancelling = true;
+                        }
+                    }
+                }
+
+                if (_threadPool != null)
+                    _threadPool.Dispose();
+
+                //if (_workerThread != null)
+                //    _workerThread.Abort();
                 //this._workerThread.Abort();
             }
                 

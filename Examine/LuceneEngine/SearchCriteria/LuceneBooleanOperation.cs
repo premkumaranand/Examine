@@ -9,11 +9,11 @@ namespace Examine.LuceneEngine.SearchCriteria
     /// </summary>
     public class LuceneBooleanOperation : IBooleanOperation
     {
-        private LuceneSearchCriteria search;
+        private readonly LuceneSearchCriteria _search;
 
         internal LuceneBooleanOperation(LuceneSearchCriteria search)
         {
-            this.search = search;
+            this._search = search;
         }
 
         #region IBooleanOperation Members
@@ -24,7 +24,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns></returns>
         public IQuery And()
         {
-            return new LuceneQuery(this.search, BooleanClause.Occur.MUST);
+            return new LuceneQuery(this._search, BooleanClause.Occur.MUST);
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns></returns>
         public IQuery Or()
         {
-            return new LuceneQuery(this.search, BooleanClause.Occur.SHOULD);
+            return new LuceneQuery(this._search, BooleanClause.Occur.SHOULD);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns></returns>
         public IQuery Not()
         {
-            return new LuceneQuery(this.search, BooleanClause.Occur.MUST_NOT);
+            return new LuceneQuery(this._search, BooleanClause.Occur.MUST_NOT);
         }
 
         /// <summary>
@@ -51,19 +51,19 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns></returns>
         public ISearchCriteria Compile()
         {
-            if (!string.IsNullOrEmpty(this.search.SearchIndexType))
+            if (!string.IsNullOrEmpty(this._search.SearchIndexType))
             {
-                var query = this.search.Query;
+                var query = this._search.Query;
 
-                this.search.Query = new BooleanQuery();
-                this.search.Query.Add(query, BooleanClause.Occur.MUST);
+                this._search.Query = new BooleanQuery();
+                this._search.Query.Add(query, BooleanClause.Occur.MUST);
 
                 //this.search.query.Add(this.search.queryParser.Parse("(" + query.ToString() + ")"), BooleanClause.Occur.MUST);
 
-                this.search.FieldInternal(LuceneIndexer.IndexCategoryFieldName, new ExamineValue(Examineness.Explicit, this.search.SearchIndexType.ToString()), BooleanClause.Occur.MUST);
+                this._search.FieldInternal(LuceneIndexer.IndexCategoryFieldName, new ExamineValue(Examineness.Explicit, this._search.SearchIndexType.ToString()), BooleanClause.Occur.MUST);
             }
             
-            return this.search;
+            return this._search;
         }
 
         #endregion

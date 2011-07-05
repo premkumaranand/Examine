@@ -25,41 +25,6 @@ namespace Examine.LuceneEngine.SearchCriteria
         private readonly BooleanClause.Occur _occurance;
         private readonly Lucene.Net.Util.Version _luceneVersion = Lucene.Net.Util.Version.LUCENE_29;
 
-        #region Field Name properties
-        private string _NodeTypeAliasField = "nodeTypeAlias";
-
-        /// <summary>
-        /// Defines the field name to use for the node type alias query
-        /// </summary>
-        public string NodeTypeAliasField
-        {
-            get { return _NodeTypeAliasField; }
-            set { _NodeTypeAliasField = value; }
-        }
-
-        private string _NodeNameField = "nodeName";
-
-        /// <summary>
-        /// Defines the field name to use for the node name query
-        /// </summary>
-        public string NodeNameField
-        {
-            get { return _NodeNameField; }
-            set { _NodeNameField = value; }
-        }
-
-        private string _ParentIdField = "parentID";
-
-        /// <summary>
-        /// Defines the field name to use for the parent id query
-        /// </summary>
-        public string ParentIdField
-        {
-            get { return _ParentIdField; }
-            set { _ParentIdField = value; }
-        } 
-        #endregion
-
         internal LuceneSearchCriteria(string type, Analyzer analyzer, string[] fields, bool allowLeadingWildcards, BooleanOperation occurance)
         {
             Enforcer.ArgumentNotNull(fields, "fields");
@@ -91,15 +56,6 @@ namespace Examine.LuceneEngine.SearchCriteria
         public override string ToString()
         {
             return string.Format("{{ SearchIndexType: {0}, LuceneQuery: {1} }}", this.SearchIndexType, this.Query.ToString());
-        }
-
-        private static void ValidateIExamineValue(IExamineValue v)
-        {
-            var ev = v as ExamineValue;
-            if (ev == null)
-            {
-                throw new ArgumentException("IExamineValue was not created from this provider. Ensure that it is created from the ISearchCriteria this provider exposes");
-            }
         }
 
         #region ISearchCriteria Members
@@ -141,80 +97,6 @@ namespace Examine.LuceneEngine.SearchCriteria
             //parse a raw query so that the normal analyzer doesn't parse out the string id
             var nodeIdQuery = ParseRawQuery(LuceneIndexer.IndexNodeIdFieldName + ":" + Lucene.Net.QueryParsers.QueryParser.Escape(id));
             Query.Add(nodeIdQuery, occurance);
-
-            return new LuceneBooleanOperation(this);
-        }
-
-        ///// <summary>
-        ///// Query on the NodeName
-        ///// </summary>
-        ///// <param name="nodeName">Name of the node.</param>
-        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        //public IBooleanOperation NodeName(string nodeName)
-        //{
-        //    Enforcer.ArgumentNotNull(nodeName, "nodeName");
-        //    return NodeName(new ExamineValue(Examineness.Explicit, nodeName));
-        //}
-
-        ///// <summary>
-        ///// Query on the NodeName
-        ///// </summary>
-        ///// <param name="nodeName">Name of the node.</param>
-        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        //public IBooleanOperation NodeName(IExamineValue nodeName)
-        //{
-        //    Enforcer.ArgumentNotNull(nodeName, "nodeName");
-        //    return this.NodeNameInternal(nodeName, _occurance);
-        //}
-
-        //internal protected IBooleanOperation NodeNameInternal(IExamineValue examineValue, BooleanClause.Occur occurance)
-        //{
-        //    return this.FieldInternal(NodeNameField, examineValue, occurance);
-        //}
-
-        ///// <summary>
-        ///// Query on the NodeTypeAlias
-        ///// </summary>
-        ///// <param name="nodeTypeAlias">The node type alias.</param>
-        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        //public IBooleanOperation NodeTypeAlias(string nodeTypeAlias)
-        //{
-        //    Enforcer.ArgumentNotNull(nodeTypeAlias, "nodeTypeAlias");            
-        //    return this.NodeTypeAlias(new ExamineValue(Examineness.Explicit, nodeTypeAlias));
-        //}
-
-        ///// <summary>
-        ///// Query on the NodeTypeAlias
-        ///// </summary>
-        ///// <param name="nodeTypeAlias">The node type alias.</param>
-        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        //public IBooleanOperation NodeTypeAlias(IExamineValue nodeTypeAlias)
-        //{
-        //    Enforcer.ArgumentNotNull(nodeTypeAlias, "nodeTypeAlias");
-        //    return this.NodeTypeAliasInternal(nodeTypeAlias, _occurance);
-        //}
-
-        //internal protected IBooleanOperation NodeTypeAliasInternal(IExamineValue examineValue, BooleanClause.Occur occurance)
-        //{
-        //    //force lower case
-        //    var eVal = new ExamineValue(examineValue.Examineness, examineValue.Value.ToLower(), examineValue.Level);
-        //    //don't use the query parser for this operation, it needs to match exact
-        //    return this.FieldInternal(NodeTypeAliasField, eVal, occurance, false);
-        //}
-
-        /// <summary>
-        /// Query on the Parent ID
-        /// </summary>
-        /// <param name="id">The id of the parent.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation ParentId(string id)
-        {
-            return this.ParentIdInternal(id, _occurance);
-        }
-
-        internal protected IBooleanOperation ParentIdInternal(string id, BooleanClause.Occur occurance)
-        {
-            Query.Add(this.QueryParser.GetFieldQuery(ParentIdField, Lucene.Net.QueryParsers.QueryParser.Escape(id)), occurance);
 
             return new LuceneBooleanOperation(this);
         }
@@ -357,7 +239,16 @@ namespace Examine.LuceneEngine.SearchCriteria
 
         internal protected IBooleanOperation FieldInternal(string fieldName, IExamineValue fieldValue, BooleanClause.Occur occurance)
         {
-            return FieldInternal(fieldName, fieldValue, occurance, true);
+            //if it's escaped, lets not use the query parser and ensure its an exact query
+            if (fieldValue.Examineness == Examineness.Escaped)
+            {
+                return FieldInternal(fieldName, fieldValue, occurance, false);
+            }
+            else
+            {
+                return FieldInternal(fieldName, fieldValue, occurance, true);    
+            }
+            
         }
 
         internal protected IBooleanOperation FieldInternal(string fieldName, IExamineValue fieldValue, BooleanClause.Occur occurance, bool useQueryParser)

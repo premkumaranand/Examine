@@ -8,8 +8,8 @@ namespace Examine.LuceneEngine.SearchCriteria
 {
     public class LuceneQuery : IQuery
     {
-        private LuceneSearchCriteria search;
-        private BooleanClause.Occur occurance;
+        private readonly LuceneSearchCriteria _search;
+        private readonly BooleanClause.Occur _occurance;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LuceneQuery"/> class.
@@ -18,8 +18,8 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <param name="occurance">The occurance.</param>
         internal LuceneQuery(LuceneSearchCriteria search, BooleanClause.Occur occurance)
         {
-            this.search = search;
-            this.occurance = occurance;
+            this._search = search;
+            this._occurance = occurance;
         }
 
         /// <summary>
@@ -28,7 +28,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <value>The boolean operation.</value>
         public BooleanOperation BooleanOperation
         {
-            get { return occurance.ToBooleanOperation(); }
+            get { return _occurance.ToBooleanOperation(); }
         }
 
 
@@ -41,37 +41,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Id(string id)
         {
-            return this.search.IdInternal(id, this.occurance);
-        }
-
-        ///// <summary>
-        ///// Query on the NodeName
-        ///// </summary>
-        ///// <param name="nodeName">Name of the node.</param>
-        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        //public IBooleanOperation NodeName(string nodeName)
-        //{
-        //    return this.search.NodeNameInternal(new ExamineValue(Examineness.Explicit, nodeName), occurance);
-        //}
-
-        ///// <summary>
-        ///// Query on the NodeTypeAlias
-        ///// </summary>
-        ///// <param name="nodeTypeAlias">The node type alias.</param>
-        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        //public IBooleanOperation NodeTypeAlias(string nodeTypeAlias)
-        //{
-        //    return this.search.NodeTypeAliasInternal(new ExamineValue(Examineness.Explicit, nodeTypeAlias), occurance);
-        //}
-
-        /// <summary>
-        /// Query on the Parent ID
-        /// </summary>
-        /// <param name="id">The id of the parent.</param>
-        /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public IBooleanOperation ParentId(string id)
-        {
-            return this.search.ParentIdInternal(id, occurance);
+            return this._search.IdInternal(id, this._occurance);
         }
 
         /// <summary>
@@ -82,7 +52,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Field(string fieldName, string fieldValue)
         {
-            return this.search.FieldInternal(fieldName, new ExamineValue(Examineness.Explicit, fieldValue), occurance);
+            return this._search.FieldInternal(fieldName, new ExamineValue(Examineness.Explicit, fieldValue), _occurance);
         }
 
         /// <summary>
@@ -125,7 +95,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns></returns>
         public IBooleanOperation Range(string fieldName, DateTime start, DateTime end, bool includeLower, bool includeUpper, DateResolution resolution)
         {
-            return this.search.Range(fieldName, start, end, includeLower, includeUpper);
+            return this._search.Range(fieldName, start, end, includeLower, includeUpper);
         }
 
         /// <summary>
@@ -151,7 +121,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Range(string fieldName, int start, int end, bool includeLower, bool includeUpper)
         {
-            return this.search.RangeInternal(fieldName, start, end, includeLower, includeUpper, occurance);
+            return this._search.RangeInternal(fieldName, start, end, includeLower, includeUpper, _occurance);
         }
 
         /// <summary>
@@ -177,7 +147,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Range(string fieldName, double start, double end, bool includeLower, bool includeUpper)
         {
-            return this.search.RangeInternal(fieldName, start, end, includeLower, includeUpper, occurance);
+            return this._search.RangeInternal(fieldName, start, end, includeLower, includeUpper, _occurance);
         }
 
         /// <summary>
@@ -203,7 +173,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Range(string fieldName, float start, float end, bool includeLower, bool includeUpper)
         {
-            return this.search.RangeInternal(fieldName, start, end, includeLower, includeUpper, occurance);
+            return this._search.RangeInternal(fieldName, start, end, includeLower, includeUpper, _occurance);
         }
 
         /// <summary>
@@ -229,7 +199,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Range(string fieldName, long start, long end, bool includeLower, bool includeUpper)
         {
-            return this.search.RangeInternal(fieldName, start, end, includeLower, includeUpper, occurance);
+            return this._search.RangeInternal(fieldName, start, end, includeLower, includeUpper, _occurance);
         }
 
         /// <summary>
@@ -255,28 +225,8 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Range(string fieldName, string start, string end, bool includeLower, bool includeUpper)
         {
-            return this.search.RangeInternal(fieldName, start, end, includeLower, includeUpper, occurance);
+            return this._search.RangeInternal(fieldName, start, end, includeLower, includeUpper, _occurance);
         }
-
-        ///// <summary>
-        ///// Query on the NodeName
-        ///// </summary>
-        ///// <param name="nodeName">Name of the node.</param>
-        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        //public IBooleanOperation NodeName(IExamineValue nodeName)
-        //{
-        //    return this.search.NodeNameInternal(nodeName, occurance);
-        //}
-
-        ///// <summary>
-        ///// Query on the NodeTypeAlias
-        ///// </summary>
-        ///// <param name="nodeTypeAlias">The node type alias.</param>
-        ///// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        //public IBooleanOperation NodeTypeAlias(IExamineValue nodeTypeAlias)
-        //{
-        //    return this.search.NodeTypeAliasInternal(nodeTypeAlias, occurance);
-        //}
 
         /// <summary>
         /// Query on the specified field
@@ -286,7 +236,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Field(string fieldName, IExamineValue fieldValue)
         {
-            return this.search.FieldInternal(fieldName, fieldValue, occurance);
+            return this._search.FieldInternal(fieldName, fieldValue, _occurance);
         }
 
         /// <summary>
@@ -302,7 +252,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             {
                 fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
             }
-            return this.search.GroupedAndInternal(fields.ToArray(), fieldVals.ToArray(), this.occurance);
+            return this._search.GroupedAndInternal(fields.ToArray(), fieldVals.ToArray(), this._occurance);
         }
 
         /// <summary>
@@ -329,7 +279,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             {
                 fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
             }
-            return this.search.GroupedOrInternal(fields.ToArray(), fieldVals.ToArray(), this.occurance);
+            return this._search.GroupedOrInternal(fields.ToArray(), fieldVals.ToArray(), this._occurance);
         }
 
         /// <summary>
@@ -340,7 +290,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation GroupedOr(IEnumerable<string> fields, params IExamineValue[] query)
         {
-            return this.search.GroupedOrInternal(fields.ToArray(), query, this.occurance);
+            return this._search.GroupedOrInternal(fields.ToArray(), query, this._occurance);
         }
 
         /// <summary>
@@ -356,7 +306,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             {
                 fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
             }
-            return this.search.GroupedNotInternal(fields.ToArray(), fieldVals.ToArray(), this.occurance);
+            return this._search.GroupedNotInternal(fields.ToArray(), fieldVals.ToArray(), this._occurance);
         }
 
         /// <summary>
@@ -367,7 +317,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation GroupedNot(IEnumerable<string> fields, params IExamineValue[] query)
         {
-            return this.search.GroupedNotInternal(fields.ToArray(), query, this.occurance);
+            return this._search.GroupedNotInternal(fields.ToArray(), query, this._occurance);
         }
 
         /// <summary>
@@ -384,7 +334,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             {
                 fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
             }
-            return this.search.GroupedFlexibleInternal(fields.ToArray(), operations.ToArray(), fieldVals.ToArray(), occurance);
+            return this._search.GroupedFlexibleInternal(fields.ToArray(), operations.ToArray(), fieldVals.ToArray(), _occurance);
         }
 
         /// <summary>
@@ -396,7 +346,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation GroupedFlexible(IEnumerable<string> fields, IEnumerable<BooleanOperation> operations, params IExamineValue[] query)
         {
-            return this.search.GroupedFlexibleInternal(fields.ToArray(), operations.ToArray(), query, occurance);
+            return this._search.GroupedFlexibleInternal(fields.ToArray(), operations.ToArray(), query, _occurance);
         }
 
         /// <summary>
@@ -406,7 +356,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation OrderBy(params string[] fieldNames)
         {
-            return this.search.OrderBy(fieldNames);
+            return this._search.OrderBy(fieldNames);
         }
 
         /// <summary>
@@ -416,7 +366,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation OrderByDescending(params string[] fieldNames)
         {
-            return this.search.OrderByDescending(fieldNames);
+            return this._search.OrderByDescending(fieldNames);
         }
 
         #endregion
