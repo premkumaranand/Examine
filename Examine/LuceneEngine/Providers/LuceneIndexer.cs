@@ -531,8 +531,12 @@ namespace Examine.LuceneEngine.Providers
 
             foreach (var i in items)
             {
-                //first add a delete queue for this item
-                buffer.Add(GetDeleteItemOperation(i.Item.Id));
+                var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(i.Item.Id).Compile());
+                if (idResult.Any())
+                {
+                    //first add a delete queue for this item
+                    buffer.Add(GetDeleteItemOperation(i.Item.Id));    
+                }
 
                 if (ValidateDocument(i.Item))
                 {
