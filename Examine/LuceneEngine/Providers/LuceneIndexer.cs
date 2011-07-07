@@ -27,7 +27,7 @@ namespace Examine.LuceneEngine.Providers
     ///<summary>
     /// Abstract object containing all of the logic used to use Lucene as an indexer
     ///</summary>
-    public class LuceneIndexer : BaseIndexProvider, IDisposable
+    public class LuceneIndexer : BaseIndexProvider
     {
         #region Constructors
 
@@ -70,7 +70,7 @@ namespace Examine.LuceneEngine.Providers
 
             //set up our folders based on the index path
             WorkingFolder = workingFolder;
-            
+
 
             IndexingAnalyzer = analyzer;
 
@@ -103,7 +103,7 @@ namespace Examine.LuceneEngine.Providers
 
             //set up our folders based on the index path
             WorkingFolder = workingFolder;
-            
+
             IndexingAnalyzer = analyzer;
 
             //create our internal searcher, this is useful for inheritors to be able to search their own indexes inside of their indexer
@@ -327,7 +327,7 @@ namespace Examine.LuceneEngine.Providers
                 //return !_threadPool.IsIdle || _isIndexing;
             }
         }
-        
+
         /// <summary>
         /// The analyzer to use when indexing content, by default, this is set to StandardAnalyzer
         /// </summary>
@@ -409,12 +409,12 @@ namespace Examine.LuceneEngine.Providers
             {
                 if (_isIndexing)
                 {
-                    lock(_indexerLocker)
+                    lock (_indexerLocker)
                     {
-                        if(_isIndexing)
+                        if (_isIndexing)
                         {
                             //reset our  flag... something else funny is going on but we don't want this to prevent ALL future operations
-                            _isIndexing = false;            
+                            _isIndexing = false;
                         }
                     }
                 }
@@ -477,7 +477,7 @@ namespace Examine.LuceneEngine.Providers
         public override void ReIndexNodes(string category, params IndexItem[] items)
         {
             //now index the single node            
-            AddNodesToIndex(category, items.Select(x => new IndexOperation {Item = x, Operation = IndexOperationType.Add}).ToArray());
+            AddNodesToIndex(category, items.Select(x => new IndexOperation { Item = x, Operation = IndexOperationType.Add }).ToArray());
         }
 
         /// <summary>
@@ -536,7 +536,7 @@ namespace Examine.LuceneEngine.Providers
 
         #region Protected
 
-        
+
 
         /// <summary>
         /// Returns an index operation to remove the item by id
@@ -581,7 +581,7 @@ namespace Examine.LuceneEngine.Providers
                 if (idResult.Any())
                 {
                     //first add a delete queue for this item
-                    buffer.Add(GetDeleteItemOperation(i.Item.Id));    
+                    buffer.Add(GetDeleteItemOperation(i.Item.Id));
                 }
 
                 if (ValidateDocument(i.Item))
@@ -828,7 +828,7 @@ namespace Examine.LuceneEngine.Providers
                         values.Add(field.Key, value);
                 }
             }
-            
+
 
             //raise the event and assign the value to the returned data from the event
             var indexingNodeDataArgs = new IndexingNodeDataEventArgs(item, id, values, category);
@@ -1154,9 +1154,9 @@ namespace Examine.LuceneEngine.Providers
             {
                 case SynchronizationType.SingleThreaded:
                     var list = new ConcurrentQueue<IndexOperation>();
-                    foreach(var i in buffer)
+                    foreach (var i in buffer)
                     {
-                        list.Enqueue(i);    
+                        list.Enqueue(i);
                     }
                     ForceProcessQueueItems(list);
                     break;
@@ -1260,7 +1260,7 @@ namespace Examine.LuceneEngine.Providers
                                         break;
                                     default:
                                         throw new ArgumentOutOfRangeException();
-                                }                                
+                                }
                             }
 
                             //raise the completed event
@@ -1405,9 +1405,9 @@ namespace Examine.LuceneEngine.Providers
 
         private void InitializeBackgroundWorker(IEnumerable<IndexOperation> buffer)
         {
-            if(_threadPool == null)
+            if (_threadPool == null)
             {
-                lock(CreateThreadPoolLock)
+                lock (CreateThreadPoolLock)
                 {
                     var start = new STPStartInfo
                         {
@@ -1430,15 +1430,15 @@ namespace Examine.LuceneEngine.Providers
                 //this will abort the thread once it's latest processing has stopped.
                 if (!_isCancelling)
                 {
-                    lock(_cancelLocker)
+                    lock (_cancelLocker)
                     {
-                        if(!_isCancelling)
+                        if (!_isCancelling)
                         {
-                            _isCancelling = true;            
+                            _isCancelling = true;
                         }
                     }
                 }
-                
+
                 return;
             }
 
@@ -1514,7 +1514,7 @@ namespace Examine.LuceneEngine.Providers
         //            _shouldProcess = false;    
         //        }                
         //    }
-            
+
         //    //return null;
         //}
 
@@ -1699,60 +1699,36 @@ namespace Examine.LuceneEngine.Providers
 
         #endregion
 
+
+
         #region IDisposable Members
-
-        protected bool _disposed;
-
-        /// <summary>
-        /// Checks the disposal state of the objects
-        /// </summary>
-        protected void CheckDisposed()
+        
+        protected override void DisposeResources()
         {
-            if (_disposed)
-                throw new ObjectDisposedException("LuceneExamine.BaseLuceneExamineIndexer");
-        }
-
-        /// <summary>
-        /// When the object is disposed, all data should be written
-        /// </summary>
-        public void Dispose()
-        {
-            this.CheckDisposed();
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-            this._disposed = true;
-        }
-
-        /// <summary>
-        /// Releases unmanaged and - optionally - managed resources
-        /// </summary>
-        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            this.CheckDisposed();
-            if (disposing)
+            if (!_isCancelling)
             {
-                if (!_isCancelling)
+                lock (_cancelLocker)
                 {
-                    lock (_cancelLocker)
+                    if (!_isCancelling)
                     {
-                        if (!_isCancelling)
-                        {
-                            _isCancelling = true;
-                        }
+                        _isCancelling = true;
                     }
                 }
-
-                if (_threadPool != null)
-                    _threadPool.Dispose();
-
-                //if (_workerThread != null)
-                //    _workerThread.Abort();
-                //this._workerThread.Abort();
             }
-                
+
+            if (_threadPool != null)
+                _threadPool.Dispose();
+
+            InternalSearcher.Dispose();
+
+            LuceneDirectory.Close();            
+
+            //if (_workerThread != null)
+            //    _workerThread.Abort();
+            //this._workerThread.Abort();
         }
 
         #endregion
+
     }
 }

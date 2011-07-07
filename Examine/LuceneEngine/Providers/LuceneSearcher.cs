@@ -20,7 +20,7 @@ namespace Examine.LuceneEngine.Providers
     ///<summary>
 	/// Standard object used to search a Lucene index
 	///</summary>
-    public class LuceneSearcher : BaseLuceneSearcher
+    public class LuceneSearcher : BaseLuceneSearcher, IDisposable
 	{
 		#region Constructors
 
@@ -330,6 +330,21 @@ namespace Examine.LuceneEngine.Providers
             }
 
         }
+
+
+        #region IDisposable Members
+
+        protected override void DisposeResources()
+        {
+            if (_searcher != null)
+            {
+                _searcher.Close();
+                LuceneDirectory.Close();
+            }
+                    
+        }       
+
+        #endregion
 
 	}
 }

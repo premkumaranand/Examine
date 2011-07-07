@@ -12,7 +12,7 @@ namespace Examine.Providers
     ///<summary>
     /// Abstract search provider object
     ///</summary>
-    public abstract class BaseSearchProvider : ProviderBase, ISearcher
+    public abstract class BaseSearchProvider : ProviderBase, ISearcher, IDisposable
     {
         #region ISearcher Members
 
@@ -57,6 +57,46 @@ namespace Examine.Providers
         /// <param name="defaultOperation">The default operation.</param>
         /// <returns>A blank SearchCriteria</returns>
         public abstract ISearchCriteria CreateSearchCriteria(string type, BooleanOperation defaultOperation);
+
+        #endregion
+
+        #region IDisposable Members
+
+        private bool _disposed = false;
+
+        /// <summary>
+        /// When the object is disposed, all data should be written
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources
+        /// </summary>
+        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        protected void Dispose(bool disposing)
+        {
+            // Check to see if Dispose has already been called.
+            if (!_disposed)
+            {
+                // If disposing equals true, dispose all managed
+                // and unmanaged resources.
+                if (disposing)
+                {
+                    // Dispose managed resources.
+                    DisposeResources();
+                }
+                _disposed = true;
+            }
+        }
+
+        protected virtual void DisposeResources()
+        {
+
+        }
 
         #endregion
     }
