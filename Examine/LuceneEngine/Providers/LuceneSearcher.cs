@@ -12,6 +12,7 @@ using Examine.LuceneEngine;
 using Examine.LuceneEngine.Config;
 using Examine.LuceneEngine.SearchCriteria;
 using Lucene.Net.Analysis;
+using Directory = Lucene.Net.Store.Directory;
 
 
 namespace Examine.LuceneEngine.Providers
@@ -43,13 +44,24 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Constructor to allow for creating an indexer at runtime
         /// </summary>
-        /// <param name="workingFolder"></param>
+        /// <param name="indexFolder"></param>
         /// <param name="analyzer"></param>
-        public LuceneSearcher(DirectoryInfo workingFolder, Analyzer analyzer)
+        public LuceneSearcher(DirectoryInfo indexFolder, Analyzer analyzer)
             : base(analyzer)
 		{
-            LuceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index"));
+            LuceneDirectory = new SimpleFSDirectory(indexFolder);
 		}
+
+        /// <summary>
+        /// Constructor to allow for creating an indexer at runtime using the specified Lucene 'Directory'
+        /// </summary>
+        /// <param name="analyzer"></param>
+        /// <param name="luceneDirectory"></param>
+        public LuceneSearcher(Analyzer analyzer, Directory luceneDirectory)
+            : base(analyzer)
+        {
+            LuceneDirectory = luceneDirectory;
+        }
 
 		#endregion
 
@@ -79,7 +91,7 @@ namespace Examine.LuceneEngine.Providers
 
 			//need to check if the index set is specified, if it's not, we'll see if we can find one by convension
 			//if the folder is not null and the index set is null, we'll assume that this has been created at runtime.
-			if (config["indexSet"] == null && LuceneIndexFolder == null)
+			if (config["indexSet"] == null)
 			{
 				//if we don't have either, then we'll try to set the index set by naming convensions
 				var found = false;
@@ -96,14 +108,14 @@ namespace Examine.LuceneEngine.Providers
 						found = true;
 
                         //get the folder to index
-                        LuceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
+					    LuceneDirectory = new SimpleFSDirectory(new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index")));
 					}
 				}
 
 				if (!found)
 					throw new ArgumentNullException("indexSet on LuceneExamineIndexer provider has not been set in configuration");
 			}
-			else if (config["indexSet"] != null)
+			else
 			{
                 var set = IndexSetConfiguration.SingleOrDefault(x => x.SetName == config["indexSet"]);
                 if (set == null)
@@ -112,7 +124,7 @@ namespace Examine.LuceneEngine.Providers
 				_indexSetName = config["indexSet"];
 
 				//get the folder to index
-                LuceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
+                LuceneDirectory = new SimpleFSDirectory(new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index")));
 			}            		
 		}
 
@@ -124,34 +136,11 @@ namespace Examine.LuceneEngine.Providers
         /// </value>
         protected IEnumerable<IndexSet> IndexSetConfiguration { get; set; }
 
-		/// <summary>
-		/// Directory where the Lucene.NET Index resides
-		/// </summary>
-		public DirectoryInfo LuceneIndexFolder
-		{
-			get
-			{
-				if (_indexFolder == null)
-				{
-					return null;
-				}
+        /// <summary>
+        /// The Lucene 'Directory' of where the index is stored
+        /// </summary>
+        public Directory LuceneDirectory { get; protected set; }
 
-				//ensure's that it always up to date!
-				_indexFolder.Refresh();
-				return _indexFolder;
-			}
-			protected set
-			{
-				_indexFolder = value;
-                //the path is changing, close the current searcher.
-			    ValidateSearcher(true);
-			}
-		}
-		
-		/// <summary>
-		/// Do not access this object directly. The public property ensures that the folder state is always up to date
-		/// </summary>
-		private DirectoryInfo _indexFolder;
         
         /// <summary>
         /// A simple search mechanism to search all fields based on an index type.
@@ -187,8 +176,8 @@ namespace Examine.LuceneEngine.Providers
         /// <returns></returns>
         public override ISearchResults Search(ISearchCriteria searchParams)
         {
-            if (!LuceneIndexFolder.Exists)
-                throw new DirectoryNotFoundException("No index found at the location specified. Ensure that an index has been created");
+            if (!IndexExists())
+                throw new DirectoryNotFoundException("The index does not exist. Ensure that an index has been created");
 
             return base.Search(searchParams);
         }
@@ -210,7 +199,16 @@ namespace Examine.LuceneEngine.Providers
             _searcher.SetDefaultFieldSortScoring(true, true);
             return _searcher;
         }
-        
+
+        /// <summary>
+        /// Check if there is an index in the index folder
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool IndexExists()
+        {
+            return IndexReader.IndexExists(LuceneDirectory);
+        }
+
         /// <summary>
         /// Returns a list of fields to search on
         /// </summary>
@@ -243,14 +241,13 @@ namespace Examine.LuceneEngine.Providers
                         //double check
                         if (_searcher == null)
                         {
-
                             try
                             {
-                                _searcher = new IndexSearcher(new SimpleFSDirectory(LuceneIndexFolder), true);
+                                _searcher = new IndexSearcher(LuceneDirectory, true);
                             }
                             catch (IOException ex)
                             {
-                                throw new ApplicationException("There is no Lucene index in the folder: " + LuceneIndexFolder.FullName + " to create an IndexSearcher on", ex);
+                                throw new ApplicationException("There is no Lucene index in the specified folder, cannot create a searcher", ex);
                             }
                         }
                     }
@@ -267,7 +264,7 @@ namespace Examine.LuceneEngine.Providers
                                 case ReaderStatus.Current:
                                     break;
                                 case ReaderStatus.Closed:
-                                    _searcher = new IndexSearcher(new SimpleFSDirectory(LuceneIndexFolder), true);
+                                    _searcher = new IndexSearcher(LuceneDirectory, true);
                                     break;
                                 case ReaderStatus.NotCurrent:
 
@@ -320,11 +317,11 @@ namespace Examine.LuceneEngine.Providers
 
                             try
                             {
-                                _searcher = new IndexSearcher(new SimpleFSDirectory(LuceneIndexFolder), true);
+                                _searcher = new IndexSearcher(LuceneDirectory, true);
                             }
                             catch (IOException ex)
                             {
-                                throw new ApplicationException("There is no Lucene index in the folder: " + LuceneIndexFolder.FullName + " to create an IndexSearcher on", ex);
+                                throw new ApplicationException("There is no Lucene index in the specified folder, cannot create a searcher", ex);
                             }
                             
                         }

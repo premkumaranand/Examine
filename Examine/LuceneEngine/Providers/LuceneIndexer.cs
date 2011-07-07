@@ -20,6 +20,7 @@ using Lucene.Net.Store;
 using Examine.LuceneEngine.Config;
 using Lucene.Net.Util;
 using System.Xml;
+using Directory = Lucene.Net.Store.Directory;
 
 namespace Examine.LuceneEngine.Providers
 {
@@ -44,6 +45,9 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="indexSetConfig">
         /// All index sets specified to be queried against in order to setup the indexer
         /// </param>
+        /// <remarks>>
+        /// Once constructed, a call must be made to Initialize
+        /// </remarks>
         public LuceneIndexer(IEnumerable<IndexSet> indexSetConfig)
         {
             //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
@@ -53,7 +57,7 @@ namespace Examine.LuceneEngine.Providers
         }
 
         /// <summary>
-        /// Constructor to allow for creating an indexer at runtime
+        /// Constructor to allow for creating an indexer at runtime which uses the Lucene SimpleFSDirectory
         /// </summary>
         /// <param name="indexerData"></param>
         /// <param name="workingFolder"></param>
@@ -66,7 +70,7 @@ namespace Examine.LuceneEngine.Providers
 
             //set up our folders based on the index path
             WorkingFolder = workingFolder;
-            LuceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index"));
+            
 
             IndexingAnalyzer = analyzer;
 
@@ -74,7 +78,33 @@ namespace Examine.LuceneEngine.Providers
             InternalSearcher = new LuceneSearcher(WorkingFolder, IndexingAnalyzer);
 
             OptimizationCommitThreshold = 100;
-            SynchronizationType = synchronizationType;            
+            SynchronizationType = synchronizationType;
+
+            var luceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index"));
+            VerifyFolder(luceneIndexFolder);
+            LuceneDirectory = new SimpleFSDirectory(luceneIndexFolder);
+
+            ReInitialize();
+        }
+
+        public LuceneIndexer(IndexCriteria indexerData, DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType, Directory luceneDirectory)
+            : base(indexerData)
+        {
+            //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
+
+            //set up our folders based on the index path
+            WorkingFolder = workingFolder;
+            
+            IndexingAnalyzer = analyzer;
+
+            //create our internal searcher, this is useful for inheritors to be able to search their own indexes inside of their indexer
+            InternalSearcher = new LuceneSearcher(WorkingFolder, IndexingAnalyzer);
+
+            OptimizationCommitThreshold = 100;
+            SynchronizationType = synchronizationType;
+            LuceneDirectory = luceneDirectory;
+
+            ReInitialize();
         }
 
         #endregion
@@ -109,7 +139,9 @@ namespace Examine.LuceneEngine.Providers
 
             //Need to check if the index set or IndexerData is specified...
 
-            if (config["indexSet"] == null && IndexerData == null)
+            DirectoryInfo luceneIndexFolder = null;
+
+            if (config["indexSet"] == null)
             {
                 //if we don't have either, then we'll try to set the index set by naming conventions
                 var found = false;
@@ -130,7 +162,7 @@ namespace Examine.LuceneEngine.Providers
 
                         //now set the index folders
                         WorkingFolder = set.IndexDirectory;
-                        LuceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
+                        luceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
 
                         found = true;
                     }
@@ -140,7 +172,7 @@ namespace Examine.LuceneEngine.Providers
                     throw new ArgumentNullException("indexSet on LuceneExamineIndexer provider has not been set in configuration and/or the IndexerData property has not been explicitly set");
 
             }
-            else if (config["indexSet"] != null)
+            else
             {
                 //if an index set is specified, ensure it exists and initialize the indexer based on the set
                 var set = _indexSetConfiguration.SingleOrDefault(x => x.SetName == config["indexSet"]);
@@ -157,7 +189,7 @@ namespace Examine.LuceneEngine.Providers
 
                 //now set the index folders
                 WorkingFolder = set.IndexDirectory;
-                LuceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
+                luceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
             }
 
             if (config["analyzer"] != null)
@@ -170,6 +202,11 @@ namespace Examine.LuceneEngine.Providers
             {
                 IndexingAnalyzer = new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29);
             }
+
+            VerifyFolder(luceneIndexFolder);
+
+            //set the Lucene 'Directory' to SimpleFS
+            LuceneDirectory = new SimpleFSDirectory(luceneIndexFolder);
 
             //create our internal searcher, this is useful for inheritors to be able to search their own indexes inside of their indexer
             InternalSearcher = new LuceneSearcher(WorkingFolder, IndexingAnalyzer);
@@ -299,9 +336,9 @@ namespace Examine.LuceneEngine.Providers
         public SynchronizationType SynchronizationType { get; protected internal set; }
 
         /// <summary>
-        /// The folder that stores the Lucene Index files
+        /// The Lucene 'Directory' of where the index is stored
         /// </summary>
-        public DirectoryInfo LuceneIndexFolder { get; private set; }
+        public Directory LuceneDirectory { get; protected set; }
 
         /// <summary>
         /// The base folder that contains the queue and index folder and the indexer executive files
@@ -448,12 +485,12 @@ namespace Examine.LuceneEngine.Providers
                 //check if the index exists and it's locked
                 if (IndexExists() && !IndexReady())
                 {
-                    OnIndexingError(new IndexingErrorEventArgs("Cannot rebuild index, the index is currently locked", string.Empty, null));
+                    OnIndexingError(new IndexingErrorEventArgs("Cannot create index, the index is currently locked", string.Empty, null));
                     return;
                 }
 
                 //create the writer (this will overwrite old index files)
-                writer = new IndexWriter(new SimpleFSDirectory(LuceneIndexFolder), IndexingAnalyzer, true, IndexWriter.MaxFieldLength.UNLIMITED);
+                writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, true, IndexWriter.MaxFieldLength.UNLIMITED);
 
             }
             catch (Exception ex)
@@ -573,7 +610,7 @@ namespace Examine.LuceneEngine.Providers
         /// <returns></returns>
         protected bool IndexReady()
         {
-            return (!IndexWriter.IsLocked(new SimpleFSDirectory(LuceneIndexFolder)));
+            return (!IndexWriter.IsLocked(LuceneDirectory));
         }
 
         /// <summary>
@@ -582,7 +619,7 @@ namespace Examine.LuceneEngine.Providers
         /// <returns></returns>
         public virtual bool IndexExists()
         {
-            return IndexReader.IndexExists(new SimpleFSDirectory(LuceneIndexFolder));
+            return IndexReader.IndexExists(LuceneDirectory);
         }
 
         /// <summary>
@@ -611,8 +648,6 @@ namespace Examine.LuceneEngine.Providers
                         IndexWriter writer = null;
                         try
                         {
-                            VerifyFolder(LuceneIndexFolder);
-
                             if (!IndexExists())
                                 return;
 
@@ -623,7 +658,7 @@ namespace Examine.LuceneEngine.Providers
                                 return;
                             }
 
-                            writer = new IndexWriter(new SimpleFSDirectory(LuceneIndexFolder), IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
+                            writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
 
                             OnIndexOptimizing(new EventArgs());
 
@@ -1339,10 +1374,8 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         private void ReInitialize()
         {
-
             //ensure all of the folders are created at startup   
             VerifyFolder(WorkingFolder);
-            VerifyFolder(LuceneIndexFolder);
 
             if (ExecutiveIndex == null)
             {
@@ -1504,7 +1537,7 @@ namespace Examine.LuceneEngine.Providers
                 }
             }
 
-            writer = new IndexWriter(new SimpleFSDirectory(LuceneIndexFolder), IndexingAnalyzer, false, IndexWriter.MaxFieldLength.UNLIMITED);
+            writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, false, IndexWriter.MaxFieldLength.UNLIMITED);
             return true;
         }
 
@@ -1568,7 +1601,7 @@ namespace Examine.LuceneEngine.Providers
             }
 
             //if we've made it this far, open a reader
-            reader = IndexReader.Open(new SimpleFSDirectory(LuceneIndexFolder), false);
+            reader = IndexReader.Open(LuceneDirectory, false);
             return true;
 
         }
