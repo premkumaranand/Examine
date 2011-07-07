@@ -74,19 +74,28 @@ namespace Examine.LuceneEngine.Providers
 
             IndexingAnalyzer = analyzer;
 
+            var luceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index"));
+            VerifyFolder(luceneIndexFolder);
+
             //create our internal searcher, this is useful for inheritors to be able to search their own indexes inside of their indexer
-            InternalSearcher = new LuceneSearcher(WorkingFolder, IndexingAnalyzer);
+            InternalSearcher = new LuceneSearcher(luceneIndexFolder, IndexingAnalyzer);
 
             OptimizationCommitThreshold = 100;
             SynchronizationType = synchronizationType;
 
-            var luceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index"));
-            VerifyFolder(luceneIndexFolder);
             LuceneDirectory = new SimpleFSDirectory(luceneIndexFolder);
 
             ReInitialize();
         }
 
+        /// <summary>
+        /// Constructor to allow for creating an indexer at runtime which allows specifying a custom lucene 'Directory'
+        /// </summary>
+        /// <param name="indexerData"></param>
+        /// <param name="workingFolder"></param>
+        /// <param name="analyzer"></param>
+        /// <param name="synchronizationType"></param>
+        /// <param name="luceneDirectory"></param>
         public LuceneIndexer(IndexCriteria indexerData, DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType, Directory luceneDirectory)
             : base(indexerData)
         {
@@ -98,7 +107,7 @@ namespace Examine.LuceneEngine.Providers
             IndexingAnalyzer = analyzer;
 
             //create our internal searcher, this is useful for inheritors to be able to search their own indexes inside of their indexer
-            InternalSearcher = new LuceneSearcher(WorkingFolder, IndexingAnalyzer);
+            InternalSearcher = new LuceneSearcher(IndexingAnalyzer, luceneDirectory);
 
             OptimizationCommitThreshold = 100;
             SynchronizationType = synchronizationType;
