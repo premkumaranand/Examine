@@ -9,6 +9,7 @@ using Examine.LuceneEngine.Config;
 using Examine.LuceneEngine.Providers;
 
 using Lucene.Net.Analysis.Standard;
+using Lucene.Net.Store;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Examine.Test.Index
@@ -16,7 +17,14 @@ namespace Examine.Test.Index
     [TestClass]
     public class IndexingTests
     {
-        private DirectoryInfo _currentFolder;
+        private Lucene.Net.Store.Directory _luceneDirectory;
+        private DirectoryInfo _workingFolder;
+
+        public IndexingTests()
+        {
+            _workingFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
+            _luceneDirectory = new RAMDirectory();
+        }
 
         [TestMethod]
         public void Indexing_Item_Indexed()
@@ -36,7 +44,7 @@ namespace Examine.Test.Index
 
             //assert
 
-            var searcher = GetSearcher(_currentFolder);
+            var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello world").Compile());
 
             Assert.AreEqual(1, results.Count());
@@ -61,7 +69,7 @@ namespace Examine.Test.Index
 
             //assert
 
-            var searcher = GetSearcher(_currentFolder);
+            var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello world").Compile());
 
             Assert.AreEqual(3, results.First().Fields.Count());
@@ -74,13 +82,18 @@ namespace Examine.Test.Index
         {
             //get an async indexer
 
-            _currentFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
-            _currentFolder.Create();
             var indexer = new LuceneIndexer(
                 new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
-                _currentFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), SynchronizationType.AsyncBackgroundWorker);
-            
+                _workingFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), 
+                SynchronizationType.AsyncBackgroundWorker,
+                _luceneDirectory);
+            var totalCount = 0;
+            indexer.NodesIndexed += (source, args) =>
+                {
+                    totalCount += args.Nodes.Count();
+                };
+
             for(var i = 0;i<20;i++)
             {
                 indexer.ReIndexNodes("TestCategory", new IndexItem
@@ -90,15 +103,15 @@ namespace Examine.Test.Index
                     ItemCategory = "test"
                 });
             }
-
-            while(indexer.IsBusy)
+            
+            while(totalCount < 20)
             {
                 Thread.Sleep(1000);
             }
-            
+
             //assert
 
-            var searcher = GetSearcher(_currentFolder);
+            var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
 
             Assert.AreEqual(20, results.Count());
@@ -110,12 +123,18 @@ namespace Examine.Test.Index
             //Arrange
 
             //get an async indexer
-            _currentFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
-            _currentFolder.Create();
             var indexer = new LuceneIndexer(
                 new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
-                _currentFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), SynchronizationType.AsyncBackgroundWorker);
+                _workingFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), 
+                SynchronizationType.AsyncBackgroundWorker,
+                _luceneDirectory);
+            var totalCount = 0;
+            indexer.NodesIndexed += (source, args) =>
+            {
+                totalCount += args.Nodes.Count();
+            };
+
             var toIndex = new List<IndexItem>();
 
             for(var i = 0;i<20;i++)
@@ -133,14 +152,14 @@ namespace Examine.Test.Index
             //add them all at once
             indexer.ReIndexNodes("TestCategory", toIndex.ToArray());
 
-            while(indexer.IsBusy)
+            while (totalCount < 20)
             {
                 Thread.Sleep(1000);
             }
             
             //assert
 
-            var searcher = GetSearcher(_currentFolder);
+            var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
 
             Assert.AreEqual(20, results.Count());
@@ -154,12 +173,17 @@ namespace Examine.Test.Index
         {
             //get an async indexer
 
-            _currentFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
-            _currentFolder.Create();
             var indexer = new LuceneIndexer(
                 new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
-                _currentFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), SynchronizationType.AsyncBackgroundWorker);
+                _workingFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), 
+                SynchronizationType.AsyncBackgroundWorker,
+                _luceneDirectory);
+            var totalCount = 0;
+            indexer.NodesIndexed += (source, args) =>
+            {
+                totalCount += args.Nodes.Count();
+            };
 
             for (var i = 0; i < 5; i++)
             {
@@ -170,12 +194,13 @@ namespace Examine.Test.Index
                     ItemCategory = "test"
                 });
             }
-            while (indexer.IsBusy)
+            while (totalCount < 5)
             {
                 Thread.Sleep(1000);
             }
+            totalCount = 0;
             
-            var searcher = GetSearcher(_currentFolder);
+            var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
             Assert.AreEqual(5, results.Count());
 
@@ -191,7 +216,7 @@ namespace Examine.Test.Index
                     ItemCategory = "test"
                 });
             }
-            while (indexer.IsBusy)
+            while (totalCount < 5)
             {
                 Thread.Sleep(1000);
             }
@@ -200,20 +225,20 @@ namespace Examine.Test.Index
             Assert.AreEqual(10, results.Count());
         }
 
-        private ISearcher GetSearcher(DirectoryInfo folder)
+        private ISearcher GetSearcher()
         {
-            var searcher = new LuceneSearcher(folder, new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29));
+            var searcher = new LuceneSearcher(new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), _luceneDirectory);
             return searcher;
         }
 
         private IIndexer GetIndexer(IEnumerable<IndexFieldDefinition> fields)
         {
-            _currentFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
-            _currentFolder.Create();
             var indexer = new LuceneIndexer(
                 new IndexCriteria(fields, null, null),
-                _currentFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), SynchronizationType.SingleThreaded);
+                _workingFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), 
+                SynchronizationType.SingleThreaded,
+                _luceneDirectory);
             return indexer;
         }
     }
