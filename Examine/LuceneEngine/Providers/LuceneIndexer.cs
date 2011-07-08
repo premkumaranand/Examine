@@ -286,6 +286,11 @@ namespace Examine.LuceneEngine.Providers
         public const string IndexNodeIdFieldName = SpecialFieldPrefix + "NodeId";
 
         /// <summary>
+        /// Used to timestamp a record, this is used to deduplicate
+        /// </summary>
+        public const string IndexItemTimeStamp = SpecialFieldPrefix + "TimeStamp";
+
+        /// <summary>
         /// Used to perform thread locking
         /// </summary>
         private readonly object _indexerLocker = new object();
@@ -383,6 +388,25 @@ namespace Examine.LuceneEngine.Providers
 
         #region Event handlers
 
+
+        /// <summary>
+        /// Overrides the handler to strip out any null values that might remain
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnNodeIndexing(IndexingNodeEventArgs e)
+        {
+            base.OnNodeIndexing(e);
+
+
+            var keysToRemove = (from i in e.Item.Fields
+                                where string.IsNullOrEmpty(i.Value.FieldValue)
+                                select i.Key).ToList();
+            foreach (var k in keysToRemove)
+            {
+                e.Item.Fields.Remove(k);
+            }
+        }
+
         protected virtual void OnIndexerExecutiveAssigned(IndexerExecutiveAssignedEventArgs e)
         {
             if (IndexerExecutiveAssigned != null)
@@ -440,34 +464,41 @@ namespace Examine.LuceneEngine.Providers
                 CreateIndex();
             }
 
-            var buffer = new Queue<IndexOperation>();
+            var buffer = new List<IndexOperation>();
 
             foreach (var i in items)
             {
                 switch (i.Operation)
                 {
                     case IndexOperationType.Add:
+                        //check if it is already in our index
                         var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(i.Item.Id).Compile());
                         if (idResult.Any())
                         {
                             //TODO: We should add an 'Update' instead of deleting first, would be much faster
                             //first add a delete queue for this item
-                            buffer.Enqueue(CreateDeleteItemOperation(i.Item.Id));
+                            buffer.Add(CreateDeleteItemOperation(i.Item.Id));
                         }
+                        //now check if it is already in our queue, in which case we want to ignore 
+                        //the previous ones.
+                        buffer.RemoveAll(x => x.Item.Id == i.Item.Id && x.Operation == IndexOperationType.Add);
+
                         //ensure the special fields are added to the dictionary to be saved to file
                         EnsureSpecialFields(i.Item);
-                        buffer.Enqueue(i);
+                        buffer.Add(i);
                         break;
                     case IndexOperationType.Delete:
-                        buffer.Enqueue(i);
+                        buffer.Add(i);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
             }
 
+            //we should now have a deduplicated list to create a queue from
+
             //run the indexer on all queued files
-            SafelyProcessQueueItems(buffer);
+            SafelyProcessQueueItems(new Queue<IndexOperation>(buffer));
         }
 
         /// <summary>
@@ -559,9 +590,60 @@ namespace Examine.LuceneEngine.Providers
                                 return;
                             }
 
-                            writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
-
                             OnIndexOptimizing(new EventArgs());
+
+                            //first, lets remove any duplicates that might exist
+                            var reader = IndexReader.Open(LuceneDirectory, false);
+                            var theTerms = reader.Terms(new Term(IndexNodeIdFieldName));
+                            do
+                            {
+                                var term = theTerms.Term();
+
+                                if ((term == null) || term.Field().ToUpper() != IndexNodeIdFieldName.ToUpper())
+                                {
+                                    break;
+                                }
+
+                                if (theTerms.DocFreq() > 1)
+                                {
+                                    var allDocs = new List<int>();
+                                    var timeStampDocs = new Dictionary<int, long>();
+                                    var td = reader.TermDocs(term);
+                                    while(td.Next())
+                                    {
+                                        allDocs.Add(td.Doc());
+                                    }
+                                    foreach(var d in allDocs)
+                                    {
+                                        var doc = reader.Document(d);
+                                        var timeStamp = doc.Get(IndexItemTimeStamp);
+                                        if (!string.IsNullOrEmpty(timeStamp))
+                                        {
+                                            long realStamp;
+                                            if (long.TryParse(timeStamp, out realStamp))
+                                            {
+                                                timeStampDocs.Add(d, realStamp);
+                                            }
+                                            
+                                        }
+                                    }
+                                    //now that we have all of the timestamped docs, we can delete the old ones,
+                                    //find the latest and remove it from the dictionary
+                                    var maxStamp = timeStampDocs.First(latest => latest.Value == timeStampDocs.Max(x => x.Value));
+                                    timeStampDocs.Remove(maxStamp.Key);
+                                    foreach (var d in timeStampDocs)
+                                    {
+                                        reader.DeleteDocument(d.Key);
+                                    } 
+                                }
+                            }
+                            while (theTerms.Next());
+
+                            //close the reader
+                            reader.Close();
+
+                            //open the writer for optization
+                            writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
 
                             //wait for optimization to complete (true)
                             writer.Optimize(true);
@@ -866,7 +948,9 @@ namespace Examine.LuceneEngine.Providers
 				//we want to store the nodeId separately as it's the index
 				{IndexNodeIdFieldName, allValuesForIndexing[IndexNodeIdFieldName]},
 				//add the index type first
-				{IndexCategoryFieldName, allValuesForIndexing[IndexCategoryFieldName]}
+				{IndexCategoryFieldName, allValuesForIndexing[IndexCategoryFieldName]},
+                //add the timestamp
+				{IndexItemTimeStamp, new ItemField(DateTime.UtcNow.Ticks.ToString())}
 			};
         }
 
@@ -962,9 +1046,9 @@ namespace Examine.LuceneEngine.Providers
                         try
                         {
 
-                            //iterate over the concurrent queue
-                            Parallel.For(0, buffer.Count, x =>
-                            {
+                            ////iterate over the concurrent queue
+                            //Parallel.For(0, buffer.Count, x =>
+                            //{
                                 //iterate through the items in the buffer, they should be in the exact order in which 
                                 //they were added so shouldn't need to sort anything
 
@@ -987,10 +1071,10 @@ namespace Examine.LuceneEngine.Providers
                                             throw new ArgumentOutOfRangeException();
                                     }
                                 }
-                            });
+                            //});
 
                             writer[0].Commit(); //commit changes!
-                            //writer[0].WaitForMerges(); //wait until commits are done
+                            writer[0].WaitForMerges(); //wait until commits are done
 
                             //raise the completed event
                             OnNodesIndexed(new IndexedNodesEventArgs(indexedNodes));
@@ -1018,7 +1102,7 @@ namespace Examine.LuceneEngine.Providers
             OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, another indexing operation is currently in progress", string.Empty, null));
             return 0;
         }
-   
+
 
         #endregion
 

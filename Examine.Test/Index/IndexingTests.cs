@@ -31,7 +31,7 @@ namespace Examine.Test.Index
         {
             //arrange
 
-            var indexer = GetIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
+            var indexer = GetIndexer();
 
             //act
 
@@ -57,11 +57,113 @@ namespace Examine.Test.Index
         }
 
         [TestMethod]
+        public void Indexing_Deduplicates()
+        {
+            //arrange
+
+            var indexer = GetAsyncIndexer();
+            var totalCount = 0;
+            indexer.NodesIndexed += (source, args) =>
+            {
+                totalCount += args.Nodes.Count();
+            };
+
+            //act
+
+            //this will index enough times to optimize which will run a dedupe process... though there shouldn't be duplicates anyways
+            for(var i = 0;i<102;i++)
+            {
+                var op = new IndexOperation
+                {
+                    Item = new IndexItem
+                    {
+                        Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("value" + i) } },
+                        Id = "test",
+                        ItemCategory = "TestCategory"
+                    },
+                    Operation = IndexOperationType.Add
+                };
+                indexer.PerformIndexing(op);
+            }
+
+            while (totalCount < 102)
+            {
+                Thread.Sleep(1000);
+            }
+
+
+            //assert
+
+            var searcher = GetSearcher();
+            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test").Compile());
+
+            Assert.AreEqual(1, results.TotalItemCount);
+        }
+
+        [TestMethod]
+        public void Indexing_Doesnt_Index_Null_Field_Values()
+        {
+            //arrange
+
+            var indexer = GetIndexer();
+
+            //act
+
+            var op = new IndexOperation
+            {
+                Item = new IndexItem
+                {
+                    Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("") } },
+                    Id = "test1",
+                    ItemCategory = "TestCategory"
+                },
+                Operation = IndexOperationType.Add
+            };
+            indexer.PerformIndexing(op);
+
+            //assert
+
+            var searcher = GetSearcher();
+            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test1").Compile());
+
+            Assert.IsFalse(results.First().Fields.ContainsKey("Field1"));
+        }
+
+        [TestMethod]
+        public void Indexing_Same_Id_Multiple_Times_Yields_One_Entry()
+        {
+            //arrange
+
+            var indexer = GetIndexer();
+
+            //act
+
+            var op = new IndexOperation
+                {
+                    Item = new IndexItem
+                        {
+                            Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world")}},
+                            Id = "test1",
+                            ItemCategory = "TestCategory"
+                        },
+                    Operation = IndexOperationType.Add
+                };
+            indexer.PerformIndexing(op, op, op, op, op, op, op);
+
+            //assert
+
+            var searcher = GetSearcher();
+            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test1").Compile());
+
+            Assert.AreEqual(1, results.TotalItemCount);            
+        }
+
+        [TestMethod]
         public void Indexing_Special_Fields_Indexed()
         {
             //arrange
 
-            var indexer = GetIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
+            var indexer = GetIndexer();
 
             //act
 
@@ -91,7 +193,7 @@ namespace Examine.Test.Index
         {
             //get an async indexer
 
-            var indexer = GetAsyncIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
+            var indexer = GetAsyncIndexer();
             var totalCount = 0;
             indexer.NodesIndexed += (source, args) =>
                 {
@@ -131,7 +233,7 @@ namespace Examine.Test.Index
             //Arrange
 
             //get an async indexer
-            var indexer = GetAsyncIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
+            var indexer = GetAsyncIndexer();
             var totalCount = 0;
             indexer.NodesIndexed += (source, args) =>
             {
@@ -180,7 +282,7 @@ namespace Examine.Test.Index
         {
             //get an async indexer
 
-            var indexer = GetAsyncIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
+            var indexer = GetAsyncIndexer();
             var totalCount = 0;
             indexer.NodesIndexed += (source, args) =>
             {
@@ -241,7 +343,7 @@ namespace Examine.Test.Index
             return searcher;
         }
 
-        private LuceneIndexer GetAsyncIndexer(IEnumerable<IndexFieldDefinition> fields)
+        private LuceneIndexer GetAsyncIndexer()
         {
             var indexer = new LuceneIndexer(
                 _workingFolder,
@@ -252,7 +354,7 @@ namespace Examine.Test.Index
             return indexer;
         }
 
-        private LuceneIndexer GetIndexer(IEnumerable<IndexFieldDefinition> fields)
+        private LuceneIndexer GetIndexer()
         {
             var indexer = new LuceneIndexer(
                 _workingFolder,

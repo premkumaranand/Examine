@@ -107,9 +107,6 @@
     <Compile Include="ISearchResults.cs" />
     <Compile Include="LuceneEngine\AllHitsCollector.cs" />
     <Compile Include="LuceneEngine\Config\IndexSets.cs" />
-    <Compile Include="LuceneEngine\Config\IndexFieldDefinition.cs" />
-    <Compile Include="LuceneEngine\Config\IndexFieldCollection.cs" />
-    <Compile Include="LuceneEngine\Config\IndexFieldCollectionExtensions.cs" />
     <Compile Include="LuceneEngine\Config\IndexSet.cs" />
     <Compile Include="LuceneEngine\Config\IndexSetCollection.cs" />
     <Compile Include="LuceneEngine\DocumentWritingEventArgs.cs" />
