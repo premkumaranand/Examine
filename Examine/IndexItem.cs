@@ -2,6 +2,33 @@
 
 namespace Examine
 {
+
+    public enum FieldDataType
+    {
+        String, Number, Int, Float, Double, Long, DateTime, DateYear, DateMonth, DateDay, DateHour, DateMinute
+    }
+
+    public class ItemField
+    {
+
+        public ItemField()
+        {
+            DataType = FieldDataType.String;
+            EnableSorting = false;
+        }
+
+        public ItemField(string fieldValue)
+            :this()
+        {
+            FieldValue = fieldValue;
+        }
+
+        public string FieldValue { get; set; }
+        public FieldDataType DataType { get; set; }
+        public bool EnableSorting { get; set; }
+
+    }
+
     /// <summary>
     /// Represents an item going into the index
     /// </summary>
@@ -12,13 +39,13 @@ namespace Examine
         /// </summary>
         public IndexItem()
         {
-            Fields = new Dictionary<string, string>();
+            Fields = new Dictionary<string, ItemField>();
         }
 
         /// <summary>
         /// Gets the fields.
         /// </summary>
-        public IDictionary<string, string> Fields { get; set; }
+        public IDictionary<string, ItemField> Fields { get; set; }
 
         /// <summary>
         /// Gets the id.

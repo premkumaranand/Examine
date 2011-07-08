@@ -112,69 +112,27 @@ namespace Examine
         /// Reindex nodes for the providers specified
         /// </summary>
         /// <param name="items"></param>
-        /// <param name="indexCategory"></param>
         /// <param name="providers"></param>
-        public void ReIndexNodes(IndexItem[] items, string indexCategory, IEnumerable<IIndexer> providers)
+        public void PerformIndexing(IndexOperation[] items, IEnumerable<IIndexer> providers)
         {
-            ReIndexNodesForProviders(items, indexCategory, providers);
+            ReIndexNodesForProviders(items, providers);
         }
-
-        /// <summary>
-        /// Deletes index for node for the specified providers
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="providers"></param>
-        public void DeleteFromIndex(string id, IEnumerable<IIndexer> providers)
-        {
-            DeleteFromIndexForProviders(id, providers);
-        }
-
+  
         /// <summary>
         /// Reindex nodes for all providers
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="indexCategory"></param>
-        public void ReIndexNodes(string indexCategory, params IndexItem[] item)
+        public void PerformIndexing(params IndexOperation[] item)
         {
-            ReIndexNodesForProviders(item, indexCategory, IndexProviderCollection.Cast<IIndexer>());
+            ReIndexNodesForProviders(item, IndexProviderCollection.Cast<IIndexer>());
         }
 
-        private static void ReIndexNodesForProviders(IndexItem[] items, string indexCategory, IEnumerable<IIndexer> providers)
+        private static void ReIndexNodesForProviders(IndexOperation[] items, IEnumerable<IIndexer> providers)
         {
             foreach (var provider in providers)
             {
-                provider.ReIndexNodes(indexCategory, items);
+                provider.PerformIndexing(items);
             }
-        }
-
-        /// <summary>
-        /// Deletes index for node for all providers
-        /// </summary>
-        /// <param name="id"></param>
-        public void DeleteFromIndex(string id)
-        {
-            DeleteFromIndexForProviders(id, IndexProviderCollection);
-        }    
-
-        private static void DeleteFromIndexForProviders(string nodeId, IEnumerable<IIndexer> providers)
-        {
-            foreach (var provider in providers)
-            {
-                provider.DeleteFromIndex(nodeId);
-            }
-        }
-
-        public IndexCriteria IndexerData
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
+        }      
 
         #endregion
 

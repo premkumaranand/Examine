@@ -6,37 +6,19 @@ namespace Examine
     /// <summary>
     /// 
     /// </summary>
-    public class IndexingNodeEventArgs : CancelEventArgs, INodeEventArgs
+    public class IndexingNodeEventArgs : CancelEventArgs
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexingNodeEventArgs"/> class.
         /// </summary>
-        /// <param name="id">The id.</param>
-        /// <param name="fields">The fields.</param>
-        /// <param name="indexType">Type of the index.</param>
-        public IndexingNodeEventArgs(string id, IDictionary<string, string> fields, string indexType)
+        public IndexingNodeEventArgs(IndexItem item)
         {
-            Id = id;
-            Fields = fields;
-            IndexType = indexType;
+            Item = item;
         }
 
         /// <summary>
         /// Gets the id.
         /// </summary>
-        public string Id { get; private set; }
-
-        /// <summary>
-        /// Gets the fields.
-        /// </summary>
-        public IDictionary<string, string> Fields { get; private set; }
-
-        /// <summary>
-        /// Gets the type of the index.
-        /// </summary>
-        /// <value>
-        /// The type of the index.
-        /// </value>
-        public string IndexType { get; private set; }
+        public IndexItem Item { get; private set; }
     }
 }

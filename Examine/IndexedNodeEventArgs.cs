@@ -10,15 +10,14 @@ namespace Examine
         /// <summary>
         /// Initializes a new instance of the <see cref="IndexedNodeEventArgs"/> class.
         /// </summary>
-        /// <param name="id">The id.</param>
-        public IndexedNodeEventArgs(string id)
+        public IndexedNodeEventArgs(IndexItem item)
         {
-            Id = id;
+            Item = item;
         }
 
         /// <summary>
-        /// Gets the id.
+        /// Gets the item.
         /// </summary>
-        public string Id { get; private set; }
+        public IndexItem Item { get; private set; }
     }
 }

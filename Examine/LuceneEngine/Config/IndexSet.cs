@@ -71,47 +71,5 @@ namespace Examine.LuceneEngine.Config
             }
         }
 
-        /// <summary>
-        /// The collection of node types to index, if not specified, all node types will be indexed (apart from the ones specified in the ExcludeNodeTypes collection).
-        /// </summary>
-        [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("includeItemTypes", IsDefaultCollection = false, IsRequired = false)]
-        public IndexFieldCollection IncludeItemTypes
-        {
-            get
-            {
-                return (IndexFieldCollection)base["includeItemTypes"];
-            }
-        }
-
-        /// <summary>
-        /// The collection of node types to not index. If specified, these node types will not be indexed.
-        /// </summary>
-        [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("excludeItemTypes", IsDefaultCollection = false, IsRequired = false)]
-        public IndexFieldCollection ExcludeItemTypes
-        {
-            get
-            {
-                return (IndexFieldCollection)base["excludeItemTypes"];
-            }
-        }
-
-        /// <summary>
-        /// A collection of user defined umbraco fields to index
-        /// </summary>
-        /// <remarks>
-        /// If this property is not specified, or if it's an empty collection, the default user fields will be all user fields defined in Umbraco
-        /// </remarks>
-        [ConfigurationCollection(typeof(IndexFieldCollection))]
-        [ConfigurationProperty("fields", IsDefaultCollection = false, IsRequired = false)]
-        public IndexFieldCollection Fields
-        {
-            get
-            {
-                return (IndexFieldCollection)base["fields"];
-            }
-        }
-
     }
 }

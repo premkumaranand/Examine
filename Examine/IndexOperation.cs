@@ -1,4 +1,7 @@
-﻿namespace Examine
+﻿using System.Collections.Generic;
+using Examine.LuceneEngine.Providers;
+
+namespace Examine
 {
     /// <summary>
     /// Represents an indexing operation (either add/remove)

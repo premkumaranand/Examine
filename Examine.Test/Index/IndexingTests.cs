@@ -31,16 +31,21 @@ namespace Examine.Test.Index
         {
             //arrange
 
-            var indexer = GetIndexer(new[] {new IndexFieldDefinition {Name = "Field1"}});
+            var indexer = GetIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
 
             //act
 
-            indexer.ReIndexNodes("TestCategory", new IndexItem
-                {
-                    Fields = new Dictionary<string, string> {{"Field1", "hello world"}},
-                    Id = "test1",
-                    ItemCategory = "test"
-                });
+            indexer.PerformIndexing(
+                new IndexOperation
+                    {
+                        Item = new IndexItem
+                            {
+                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world")}},
+                                Id = "test1",
+                                ItemCategory = "TestCategory"
+                            },
+                        Operation = IndexOperationType.Add
+                    });
 
             //assert
 
@@ -60,12 +65,16 @@ namespace Examine.Test.Index
 
             //act
 
-            indexer.ReIndexNodes("TestCategory", new IndexItem
-            {
-                Fields = new Dictionary<string, string> { { "Field1", "hello world" } },
-                Id = "test1",
-                ItemCategory = "test"
-            });
+            indexer.PerformIndexing(new IndexOperation
+                {
+                    Item = new IndexItem
+                        {
+                            Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world")}},
+                            Id = "test1",
+                            ItemCategory = "TestCategory"
+                        },
+                    Operation = IndexOperationType.Add
+                });
 
             //assert
 
@@ -82,29 +91,28 @@ namespace Examine.Test.Index
         {
             //get an async indexer
 
-            var indexer = new LuceneIndexer(
-                new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
-                _workingFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), 
-                SynchronizationType.AsyncBackgroundWorker,
-                _luceneDirectory);
+            var indexer = GetAsyncIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
             var totalCount = 0;
             indexer.NodesIndexed += (source, args) =>
                 {
                     totalCount += args.Nodes.Count();
                 };
 
-            for(var i = 0;i<20;i++)
+            for (var i = 0; i < 20; i++)
             {
-                indexer.ReIndexNodes("TestCategory", new IndexItem
-                {
-                    Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
-                    Id = "test" + i,
-                    ItemCategory = "test"
-                });
+                indexer.PerformIndexing(new IndexOperation
+                    {
+                        Item = new IndexItem
+                            {
+                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world " + i)}},
+                                Id = "test" + i,
+                                ItemCategory = "TestCategory"
+                            },
+                        Operation = IndexOperationType.Add
+                    });
             }
-            
-            while(totalCount < 20)
+
+            while (totalCount < 20)
             {
                 Thread.Sleep(1000);
             }
@@ -123,40 +131,39 @@ namespace Examine.Test.Index
             //Arrange
 
             //get an async indexer
-            var indexer = new LuceneIndexer(
-                new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
-                _workingFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), 
-                SynchronizationType.AsyncBackgroundWorker,
-                _luceneDirectory);
+            var indexer = GetAsyncIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
             var totalCount = 0;
             indexer.NodesIndexed += (source, args) =>
             {
                 totalCount += args.Nodes.Count();
             };
 
-            var toIndex = new List<IndexItem>();
+            var toIndex = new List<IndexOperation>();
 
-            for(var i = 0;i<20;i++)
+            for (var i = 0; i < 20; i++)
             {
-                toIndex.Add(new IndexItem
+                toIndex.Add(new IndexOperation
                     {
-                        Fields = new Dictionary<string, string> {{"Field1", "hello world " + i}},
-                        Id = "test" + i,
-                        ItemCategory = "test"
+                        Item = new IndexItem
+                            {
+                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world " + i)}},
+                                Id = "test" + i,
+                                ItemCategory = "TestCategory"
+                            },
+                        Operation = IndexOperationType.Add
                     });
             }
-            
+
             //ACT
 
             //add them all at once
-            indexer.ReIndexNodes("TestCategory", toIndex.ToArray());
+            indexer.PerformIndexing(toIndex.ToArray());
 
             while (totalCount < 20)
             {
                 Thread.Sleep(1000);
             }
-            
+
             //assert
 
             var searcher = GetSearcher();
@@ -173,12 +180,7 @@ namespace Examine.Test.Index
         {
             //get an async indexer
 
-            var indexer = new LuceneIndexer(
-                new IndexCriteria(new[] { new IndexFieldDefinition { Name = "Field1" } }, null, null),
-                _workingFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), 
-                SynchronizationType.AsyncBackgroundWorker,
-                _luceneDirectory);
+            var indexer = GetAsyncIndexer(new[] { new IndexFieldDefinition { Name = "Field1" } });
             var totalCount = 0;
             indexer.NodesIndexed += (source, args) =>
             {
@@ -187,19 +189,23 @@ namespace Examine.Test.Index
 
             for (var i = 0; i < 5; i++)
             {
-                indexer.ReIndexNodes("TestCategory", new IndexItem
-                {
-                    Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
-                    Id = "test" + i,
-                    ItemCategory = "test"
-                });
+                indexer.PerformIndexing(new IndexOperation
+                    {
+                        Item = new IndexItem
+                            {
+                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world " + i)}},
+                                Id = "test" + i,
+                                ItemCategory = "TestCategory"
+                            },
+                        Operation = IndexOperationType.Add
+                    });
             }
             while (totalCount < 5)
             {
                 Thread.Sleep(1000);
             }
             totalCount = 0;
-            
+
             var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
             Assert.AreEqual(5, results.Count());
@@ -209,12 +215,16 @@ namespace Examine.Test.Index
 
             for (var i = 5; i < 10; i++)
             {
-                indexer.ReIndexNodes("TestCategory", new IndexItem
-                {
-                    Fields = new Dictionary<string, string> { { "Field1", "hello world " + i } },
-                    Id = "test" + i,
-                    ItemCategory = "test"
-                });
+                indexer.PerformIndexing(new IndexOperation
+                    {
+                        Item = new IndexItem
+                            {
+                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world " + i)}},
+                                Id = "test" + i,
+                                ItemCategory = "TestCategory"
+                            },
+                        Operation = IndexOperationType.Add
+                    });
             }
             while (totalCount < 5)
             {
@@ -231,14 +241,27 @@ namespace Examine.Test.Index
             return searcher;
         }
 
-        private IIndexer GetIndexer(IEnumerable<IndexFieldDefinition> fields)
+        private LuceneIndexer GetAsyncIndexer(IEnumerable<IndexFieldDefinition> fields)
         {
             var indexer = new LuceneIndexer(
-                new IndexCriteria(fields, null, null),
                 _workingFolder,
-                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), 
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
+                SynchronizationType.AsyncBackgroundWorker,
+                _luceneDirectory);
+            indexer.IndexingError += (s, e) => Assert.Fail(e.Message);
+            return indexer;
+        }
+
+        private LuceneIndexer GetIndexer(IEnumerable<IndexFieldDefinition> fields)
+        {
+            var indexer = new LuceneIndexer(
+                _workingFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
                 SynchronizationType.SingleThreaded,
                 _luceneDirectory);
+
+            indexer.IndexingError += (s, e) => Assert.Fail(e.Message);
+
             return indexer;
         }
     }

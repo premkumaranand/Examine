@@ -8,7 +8,7 @@ namespace Examine
     /// <summary>
     /// 
     /// </summary>
-    public class IndexingErrorEventArgs : EventArgs, INodeEventArgs
+    public class IndexingErrorEventArgs : EventArgs
     {
 
         /// <summary>

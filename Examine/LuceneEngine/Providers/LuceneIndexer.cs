@@ -63,8 +63,7 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="workingFolder"></param>
         /// <param name="analyzer"></param>
         /// <param name="synchronizationType"></param>
-        public LuceneIndexer(IndexCriteria indexerData, DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType)
-            : base(indexerData)
+        public LuceneIndexer(DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType)
         {
             //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
 
@@ -96,8 +95,7 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="analyzer"></param>
         /// <param name="synchronizationType"></param>
         /// <param name="luceneDirectory"></param>
-        public LuceneIndexer(IndexCriteria indexerData, DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType, Directory luceneDirectory)
-            : base(indexerData)
+        public LuceneIndexer(DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType, Directory luceneDirectory)
         {
             //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
 
@@ -165,8 +163,6 @@ namespace Examine.LuceneEngine.Providers
                         //we've found an index set by naming conventions :)
                         IndexSetName = set.SetName;
 
-                        //get the index criteria and ensure folder
-                        IndexerData = GetIndexerData(set);
                         VerifyFolder(set.IndexDirectory);
 
                         //now set the index folders
@@ -192,8 +188,6 @@ namespace Examine.LuceneEngine.Providers
 
                 IndexSetName = config["indexSet"];
 
-                //get the index criteria and ensure folder
-                IndexerData = GetIndexerData(set);
                 VerifyFolder(set.IndexDirectory);
 
                 //now set the index folders
@@ -232,6 +226,28 @@ namespace Examine.LuceneEngine.Providers
 
         }
 
+        #endregion
+
+        #region Static Helpers
+        /// <summary>
+        /// Returns an index operation to remove the item by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public static IndexOperation CreateDeleteItemOperation(string id)
+        {
+            var operation = new IndexOperation
+            {
+                Item = new IndexItem
+                {
+                    Fields = new Dictionary<string, ItemField> { { IndexNodeIdFieldName, new ItemField(id) } },
+                    Id = id,
+                    ItemCategory = string.Empty
+                },
+                Operation = IndexOperationType.Delete
+            };
+            return operation;
+        }
         #endregion
 
         #region Constants & Fields
@@ -282,27 +298,16 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Used for double check locking during an index operation
         /// </summary>
-        private volatile bool _isIndexing = false;
+        private bool _isIndexing = false;
 
         private readonly object _cancelLocker = new object();
+
+        private Task _asyncTask;
+
         /// <summary>
         /// Used to cancel the async operation
         /// </summary>
         private bool _isCancelling = false;
-
-        //private readonly object _shouldProcessLock = new object();
-        ///// <summary>
-        ///// Used to notify the worker thread to run an iteration
-        ///// </summary>
-        //private bool _shouldProcess = false;
-
-        ///// <summary>
-        ///// Used to run the indexing async
-        ///// </summary>
-        private static readonly object CreateThreadPoolLock = new object();
-
-        //private readonly ThreadStart _workerThreadDoWorkEventHandler;
-        //private Thread _workerThread;
 
         /// <summary>
         /// We need an internal searcher used to search against our own index.
@@ -382,7 +387,7 @@ namespace Examine.LuceneEngine.Providers
         {
             if (IndexerExecutiveAssigned != null)
                 IndexerExecutiveAssigned(this, e);
-        }        
+        }
 
         /// <summary>
         /// Called when an indexing error occurs
@@ -417,15 +422,6 @@ namespace Examine.LuceneEngine.Providers
                 IndexOptimized(this, e);
         }
 
-        /// <summary>
-        /// This is here for inheritors to deal with if there's a duplicate entry in the fields dictionary when trying to index.
-        /// The system by default just ignores duplicates but this will give inheritors a chance to do something about it (i.e. logging, alerting...)
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="indexSetName"></param>
-        /// <param name="fieldName"></param>
-        protected virtual void OnDuplicateFieldWarning(string id, string indexSetName, string fieldName) { }
-
         #endregion
 
         #region Provider implementation
@@ -435,10 +431,43 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         /// <param name="items">XML node to reindex</param>
         /// <param name="category">Type of index to use</param>
-        public override void ReIndexNodes(string category, params IndexItem[] items)
+        public override void PerformIndexing(params IndexOperation[] items)
         {
-            //now index the single node            
-            AddNodesToIndex(category, items.Select(x => new IndexOperation { Item = x, Operation = IndexOperationType.Add }).ToArray());
+            //check if the index doesn't exist, and if so, create it and reindex everything, this will obviously index this
+            //particular node
+            if (!IndexExists())
+            {
+                CreateIndex();
+            }
+
+            var buffer = new Queue<IndexOperation>();
+
+            foreach (var i in items)
+            {
+                switch (i.Operation)
+                {
+                    case IndexOperationType.Add:
+                        var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(i.Item.Id).Compile());
+                        if (idResult.Any())
+                        {
+                            //TODO: We should add an 'Update' instead of deleting first, would be much faster
+                            //first add a delete queue for this item
+                            buffer.Enqueue(CreateDeleteItemOperation(i.Item.Id));
+                        }
+                        //ensure the special fields are added to the dictionary to be saved to file
+                        EnsureSpecialFields(i.Item);
+                        buffer.Enqueue(i);
+                        break;
+                    case IndexOperationType.Delete:
+                        buffer.Enqueue(i);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            //run the indexer on all queued files
+            SafelyProcessQueueItems(buffer);
         }
 
         /// <summary>
@@ -475,106 +504,10 @@ namespace Examine.LuceneEngine.Providers
 
         }
 
-        /// <summary>
-        /// Deletes a node from the index.                
-        /// </summary>
-        /// <remarks>
-        /// When a content node is deleted, we also need to delete it's children from the index so we need to perform a 
-        /// custom Lucene search to find all decendents and create Delete item queues for them too.
-        /// </remarks>
-        /// <param name="id">ID of the node to delete</param>
-        public override void DeleteFromIndex(string id)
-        {
-            var buffer = new[]
-                {
-                    GetDeleteItemOperation(id)
-                };
-
-            SafelyProcessQueueItems(buffer);
-        }
-
         #endregion
 
         #region Protected
 
-        
-
-        /// <summary>
-        /// Returns an index operation to remove the item by id
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        protected IndexOperation GetDeleteItemOperation(string id)
-        {
-            var operation = new IndexOperation
-                {
-                    Item = new IndexItem
-                        {
-                            Fields = new Dictionary<string, string> { { IndexNodeIdFieldName, id } },
-                            Id = id,
-                            ItemCategory = string.Empty
-                        },
-                    Operation = IndexOperationType.Delete
-                };
-            return operation;
-        }
-
-        /// <summary>
-        /// This will add all items to the index but will first attempt to delete them from the index to avoid duplicates
-        /// </summary>
-        /// <param name="category"></param>
-        /// <param name="items"></param>
-        protected void AddNodesToIndex(string category, params IndexOperation[] items)
-        {
-
-            //check if the index doesn't exist, and if so, create it and reindex everything, this will obviously index this
-            //particular node
-            if (!IndexExists())
-            {
-                CreateIndex();
-            }
-
-            var buffer = new List<IndexOperation>();
-
-            foreach (var i in items)
-            {
-                var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(i.Item.Id).Compile());
-                if (idResult.Any())
-                {
-                    //TODO: We should add an 'Update' instead of deleting first, would be much faster
-
-                    //first add a delete queue for this item
-                    buffer.Add(GetDeleteItemOperation(i.Item.Id));
-                }
-
-                if (ValidateDocument(i.Item))
-                {
-                    //save the index item to a queue
-                    var fields = GetDataToIndex(i.Item, category);
-                    BufferAddIndexQueueItem(fields, i.Item.Id, category, buffer);
-                }
-                else
-                {
-                    OnIgnoringNode(new IndexingNodeDataEventArgs(i.Item, i.Item.Id, null, category));
-                }
-
-            }
-
-            //run the indexer on all queued files
-            SafelyProcessQueueItems(buffer);
-        }
-
-        /// <summary>
-        /// Returns IndexCriteria object from the IndexSet
-        /// </summary>
-        /// <param name="indexSet"></param>
-        protected virtual IndexCriteria GetIndexerData(IndexSet indexSet)
-        {
-            return new IndexCriteria(
-                indexSet.Fields.Cast<IIndexFieldDefinition>().ToArray(),
-                indexSet.IncludeItemTypes.ToList().Select(x => x.Name).ToArray(),
-                indexSet.ExcludeItemTypes.ToList().Select(x => x.Name).ToArray());
-        }
 
         /// <summary>
         /// Checks if the index is ready to open/write to.
@@ -598,7 +531,7 @@ namespace Examine.LuceneEngine.Providers
         /// This wil optimize the index for searching, this gets executed when this class instance is instantiated.
         /// </summary>
         /// <remarks>
-        /// This can be an expensive operation and should only be called when there is no indexing activity
+        /// This can be an expensive operation and should only be called when there is no indexing activity, 
         /// </remarks>
         protected void OptimizeIndex()
         {
@@ -606,45 +539,49 @@ namespace Examine.LuceneEngine.Providers
             if (!ExecutiveIndex.IsExecutiveMachine)
                 return;
 
-            if (SetIndexingStarted())
+            if (!_isIndexing)
             {
-                IndexWriter writer = null;
-                try
+                lock (_indexerLocker)
                 {
-                    if (!IndexExists())
-                        return;
-
-                    //check if the index is ready to be written to.
-                    if (!IndexReady())
+                    if (!_isIndexing)
                     {
-                        OnIndexingError(new IndexingErrorEventArgs("Cannot optimize index, the index is currently locked", string.Empty, null));
-                        SetIndexingStopped();
-                        return;
+                        IndexWriter writer = null;
+                        try
+                        {
+                            if (!IndexExists())
+                                return;
+
+                            //check if the index is ready to be written to.
+                            if (!IndexReady())
+                            {
+                                OnIndexingError(new IndexingErrorEventArgs("Cannot optimize index, the index is currently locked", string.Empty, null));
+                                _isIndexing = false;
+                                return;
+                            }
+
+                            writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
+
+                            OnIndexOptimizing(new EventArgs());
+
+                            //wait for optimization to complete (true)
+                            writer.Optimize(true);
+
+                            OnIndexOptimized(new EventArgs());
+                        }
+                        catch (Exception ex)
+                        {
+                            OnIndexingError(new IndexingErrorEventArgs("Error optimizing Lucene index", string.Empty, ex));
+                        }
+                        finally
+                        {
+                            CloseWriter(ref writer);
+
+                            _isIndexing = false;
+                        }
                     }
-
-                    writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
-
-                    OnIndexOptimizing(new EventArgs());
-
-                    //wait for optimization to complete (true)
-                    writer.Optimize(true);
-
-                    OnIndexOptimized(new EventArgs());
                 }
-                catch (Exception ex)
-                {
-                    OnIndexingError(new IndexingErrorEventArgs("Error optimizing Lucene index", string.Empty, ex));
-                }
-                finally
-                {
-                    CloseWriter(ref writer);
-                }
-
-
-                SetIndexingStopped();
             }
 
-            
         }
 
         /// <summary>
@@ -680,115 +617,10 @@ namespace Examine.LuceneEngine.Providers
         }
 
         /// <summary>
-        /// Ensures that the node being indexed is of a correct type and is a descendent of the parent id specified.
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
-        protected virtual bool ValidateDocument(IndexItem item)
-        {
-            //check if this document is of a correct type of node type alias
-            if (IndexerData.IncludeItemTypes.Count() > 0)
-                if (!IndexerData.IncludeItemTypes.Contains(item.ItemCategory))
-                    return false;
-
-            //if this node type is part of our exclusion list, do not validate
-            if (IndexerData.ExcludeItemTypes.Count() > 0)
-                if (IndexerData.ExcludeItemTypes.Contains(item.ItemCategory))
-                    return false;
-
-            return true;
-        }
-
-
-        /// <summary>
-        /// Translates the XElement structure into a dictionary object to be indexed.
-        /// </summary>
-        /// <remarks>
-        /// This is used when re-indexing an individual node since this is the way the provider model works.
-        /// For this provider, it will use a very similar XML structure as umbraco 4.0.x:
-        /// </remarks>
-        /// <example>
-        /// <code>
-        /// <![CDATA[
-        /// <root>
-        ///     <node id="1234" nodeTypeAlias="yourIndexType">
-        ///         <data alias="fieldName1">Some data</data>
-        ///         <data alias="fieldName2">Some other data</data>
-        ///     </node>
-        ///     <node id="345" nodeTypeAlias="anotherIndexType">
-        ///         <data alias="fieldName3">More data</data>
-        ///     </node>
-        /// </root>
-        /// ]]>
-        /// </code>        
-        /// </example>
-        /// <param name="item"></param>
-        /// <param name="category"></param>
-        /// <returns></returns>
-        protected virtual IDictionary<string, string> GetDataToIndex(IndexItem item, string category)
-        {
-            IDictionary<string, string> values = new Dictionary<string, string>();
-
-            var id = item.Id;
-
-            // Get all user data that we want to index and store into a dictionary.
-
-            // If no fields are specified, we will just index all fields!
-
-            if (IndexerData.Fields.Any())
-            {
-                //only index the fields that are defined...
-
-                foreach (var field in IndexerData.Fields)
-                {
-                    // Get the value of the data                
-                    var value = item.Fields[field.Name];
-
-                    //raise the event and assign the value to the returned data from the event
-                    var indexingFieldDataArgs = new IndexingFieldDataEventArgs(item, field.Name, value, false, id);
-                    OnGatheringFieldData(indexingFieldDataArgs);
-                    value = indexingFieldDataArgs.FieldValue;
-
-                    //don't add if the value is empty/null
-                    if (string.IsNullOrEmpty(value)) continue;
-                    if (!string.IsNullOrEmpty(value))
-                        values.Add(field.Name, value);
-                }
-            }
-            else
-            {
-                //no fields specified, so index all fields...
-
-                foreach (var field in item.Fields)
-                {
-                    // Get the value of the data                
-                    var value = field.Value;
-
-                    //raise the event and assign the value to the returned data from the event
-                    var indexingFieldDataArgs = new IndexingFieldDataEventArgs(item, field.Key, value, false, id);
-                    OnGatheringFieldData(indexingFieldDataArgs);
-                    value = indexingFieldDataArgs.FieldValue;
-
-                    //don't add if the value is empty/null
-                    if (string.IsNullOrEmpty(value)) continue;
-                    if (!string.IsNullOrEmpty(value))
-                        values.Add(field.Key, value);
-                }
-            }
-
-
-            //raise the event and assign the value to the returned data from the event
-            var indexingNodeDataArgs = new IndexingNodeDataEventArgs(item, id, values, category);
-            OnGatheringNodeData(indexingNodeDataArgs);
-            values = indexingNodeDataArgs.Fields;
-
-            return values;
-        }
-
-        /// <summary>
         /// Determines the indexing policy for the field specified, by default unless thsi method is overridden, all fields will be "Analyzed"
         /// </summary>
         /// <param name="fieldName"></param>
+        /// <param name="indexCategory"></param>
         /// <returns></returns>
         protected virtual FieldIndexTypes GetPolicy(string fieldName, string indexCategory)
         {
@@ -828,234 +660,191 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Collects the data for the fields and adds the document which is then committed into Lucene.Net's index
         /// </summary>
-        /// <param name="fields">The fields and their associated data.</param>
+        /// <param name="item"></param>
         /// <param name="writer">The writer that will be used to update the Lucene index.</param>
-        /// <param name="id">The node id.</param>
-        /// <param name="type">The type to index the node as.</param>
         /// <remarks>
         /// This will normalize (lowercase) all text before it goes in to the index.
         /// </remarks>
-        protected virtual void AddDocument(IDictionary<string, string> fields, IndexWriter writer, string id, string type)
+        protected virtual void AddDocument(IndexItem item, IndexWriter writer)
         {
-            var args = new IndexingNodeEventArgs(id, fields, type);
+            var args = new IndexingNodeEventArgs(item);
             OnNodeIndexing(args);
             if (args.Cancel)
                 return;
 
             var d = new Document();
 
-            //get all index set fields that are defined
-            var indexSetFields = IndexerData.Fields.ToList();
-
             //add all of our fields to the document index individually, don't include the special fields if they exists            
-            var validFields = fields.Where(x => !x.Key.StartsWith(SpecialFieldPrefix)).ToList();
+            var validFields = item.Fields.Where(x => !x.Key.StartsWith(SpecialFieldPrefix)).ToList();
 
-            foreach (var x in validFields)
+            foreach (var f in validFields)
             {
-                var ourPolicyType = GetPolicy(x.Key, fields[IndexCategoryFieldName]);
+                var ourPolicyType = GetPolicy(f.Key, item.Fields[IndexCategoryFieldName].FieldValue);
                 var lucenePolicy = TranslateFieldIndexTypeToLuceneType(ourPolicyType);
 
-                var indexedFields = indexSetFields.Where(o => o.Name == x.Key);
+                Fieldable field = null;
+                object parsedVal = null;
 
-                if (indexedFields.Count() == 0)
+                switch (f.Value.DataType)
                 {
-                    //TODO: Decide if we should support non-strings in here too
-                    d.Add(
-                    new Field(x.Key,
-                        x.Value,
-                        Field.Store.YES,
-                        lucenePolicy,
-                        lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES));
+                    case FieldDataType.Number:
+                    case FieldDataType.Int:
+                        if (!TryConvert<int>(f.Value.FieldValue, out parsedVal))
+                            break;
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetIntValue((int)parsedVal);
+                        break;
+                    case FieldDataType.Float:
+                        if (!TryConvert<float>(f.Value.FieldValue, out parsedVal))
+                            break;
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetFloatValue((float)parsedVal);
+                        break;
+                    case FieldDataType.Double:
+                        if (!TryConvert<double>(f.Value.FieldValue, out parsedVal))
+                            break;
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetDoubleValue((double)parsedVal);
+                        break;
+                    case FieldDataType.Long:
+                        if (!TryConvert<long>(f.Value.FieldValue, out parsedVal))
+                            break;
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetLongValue((long)parsedVal);
+                        break;
+                    case FieldDataType.DateTime:
+                        {
+                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
+                                break;
+
+                            DateTime date = (DateTime)parsedVal;
+                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MILLISECOND);
+                            field = new Field(f.Key,
+                                dateAsString,
+                                Field.Store.YES,
+                                lucenePolicy,
+                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
+                            );
+
+                            break;
+                        }
+                    case FieldDataType.DateYear:
+                        {
+                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
+                                break;
+
+                            DateTime date = (DateTime)parsedVal;
+                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.YEAR);
+                            field = new Field(f.Key,
+                                dateAsString,
+                                Field.Store.YES,
+                                lucenePolicy,
+                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
+                            );
+
+                            break;
+                        }
+                    case FieldDataType.DateMonth:
+                        {
+                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
+                                break;
+
+                            DateTime date = (DateTime)parsedVal;
+                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MONTH);
+                            field = new Field(f.Key,
+                                dateAsString,
+                                Field.Store.YES,
+                                lucenePolicy,
+                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
+                            );
+
+                            break;
+                        }
+                    case FieldDataType.DateDay:
+                        {
+                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
+                                break;
+
+                            DateTime date = (DateTime)parsedVal;
+                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.DAY);
+                            field = new Field(f.Key,
+                                dateAsString,
+                                Field.Store.YES,
+                                lucenePolicy,
+                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
+                            );
+                            break;
+                        }
+                    case FieldDataType.DateHour:
+                        {
+                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
+                                break;
+
+                            DateTime date = (DateTime)parsedVal;
+                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.HOUR);
+                            field = new Field(f.Key,
+                                dateAsString,
+                                Field.Store.YES,
+                                lucenePolicy,
+                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
+                            );
+                            break;
+                        }
+                    case FieldDataType.DateMinute:
+                        {
+                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
+                                break;
+
+                            DateTime date = (DateTime)parsedVal;
+                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MINUTE);
+                            field = new Field(f.Key,
+                                dateAsString,
+                                Field.Store.YES,
+                                lucenePolicy,
+                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
+                            );
+                            break;
+                        }
+                    default:
+                        field = new Field(f.Key,
+                                f.Value.FieldValue,
+                                Field.Store.YES,
+                                lucenePolicy,
+                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
+                            );
+                        break;
                 }
 
+                //if the parsed value is null, this means it couldn't parse and we should log this error
+                if (field == null)
+                {
+                    OnIndexingError(new IndexingErrorEventArgs("Could not parse value: " + f.Value + "into the type: " + f.Value.DataType, item.Id, null));
+                }
                 else
                 {
-                    //checks if there's duplicates fields, if not check if the field needs to be sortable...
-                    if (indexedFields.Count() > 1)
+                    d.Add(field);
+
+                    if (f.Value.EnableSorting)
                     {
-                        //we wont error if there are two fields which match, we'll just log an error and ignore the 2nd field                        
-                        OnDuplicateFieldWarning(id, x.Key, IndexSetName);
-                    }
-                    else
-                    {
-                        var indexField = indexedFields.First();
-                        Fieldable field = null;
-                        object parsedVal = null;
-                        if (string.IsNullOrEmpty(indexField.DataType)) indexField.DataType = string.Empty;
-                        switch (indexField.DataType.ToUpper())
-                        {
-                            case "NUMBER":
-                            case "INT":
-                                if (!TryConvert<int>(x.Value, out parsedVal))
-                                    break;
-                                field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetIntValue((int)parsedVal);
-                                break;
-                            case "FLOAT":
-                                if (!TryConvert<float>(x.Value, out parsedVal))
-                                    break;
-                                field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetFloatValue((float)parsedVal);
-                                break;
-                            case "DOUBLE":
-                                if (!TryConvert<double>(x.Value, out parsedVal))
-                                    break;
-                                field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetDoubleValue((double)parsedVal);
-                                break;
-                            case "LONG":
-                                if (!TryConvert<long>(x.Value, out parsedVal))
-                                    break;
-                                field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetLongValue((long)parsedVal);
-                                break;
-                            case "DATE":
-                            case "DATETIME":
-                                {
-                                    if (!TryConvert<DateTime>(x.Value, out parsedVal))
-                                        break;
-
-                                    DateTime date = (DateTime)parsedVal;
-                                    string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MILLISECOND);
-                                    //field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetLongValue(long.Parse(dateAsString));
-                                    field =
-                                    new Field(x.Key,
-                                        dateAsString,
-                                        Field.Store.YES,
-                                        lucenePolicy,
-                                        lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                                    );
-
-                                    break;
-                                }
-                            case "DATE.YEAR":
-                                {
-                                    if (!TryConvert<DateTime>(x.Value, out parsedVal))
-                                        break;
-
-                                    DateTime date = (DateTime)parsedVal;
-                                    string dateAsString = DateTools.DateToString(date, DateTools.Resolution.YEAR);
-                                    //field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetIntValue(int.Parse(dateAsString));
-                                    field =
-                                    new Field(x.Key,
-                                        dateAsString,
-                                        Field.Store.YES,
-                                        lucenePolicy,
-                                        lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                                    );
-
-                                    break;
-                                }
-                            case "DATE.MONTH":
-                                {
-                                    if (!TryConvert<DateTime>(x.Value, out parsedVal))
-                                        break;
-
-                                    DateTime date = (DateTime)parsedVal;
-                                    string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MONTH);
-                                    //field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetIntValue(int.Parse(dateAsString));
-                                    field =
-                                    new Field(x.Key,
-                                        dateAsString,
-                                        Field.Store.YES,
-                                        lucenePolicy,
-                                        lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                                    );
-
-                                    break;
-                                }
-                            case "DATE.DAY":
-                                {
-                                    if (!TryConvert<DateTime>(x.Value, out parsedVal))
-                                        break;
-
-                                    DateTime date = (DateTime)parsedVal;
-                                    string dateAsString = DateTools.DateToString(date, DateTools.Resolution.DAY);
-                                    //field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetIntValue(int.Parse(dateAsString));
-                                    field =
-                                    new Field(x.Key,
-                                        dateAsString,
-                                        Field.Store.YES,
-                                        lucenePolicy,
-                                        lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                                    );
-                                    break;
-                                }
-                            case "DATE.HOUR":
-                                {
-                                    if (!TryConvert<DateTime>(x.Value, out parsedVal))
-                                        break;
-
-                                    DateTime date = (DateTime)parsedVal;
-                                    string dateAsString = DateTools.DateToString(date, DateTools.Resolution.HOUR);
-                                    //field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetIntValue(int.Parse(dateAsString));
-                                    field =
-                                    new Field(x.Key,
-                                        dateAsString,
-                                        Field.Store.YES,
-                                        lucenePolicy,
-                                        lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                                    );
-                                    break;
-                                }
-                            case "DATE.MINUTE":
-                                {
-                                    if (!TryConvert<DateTime>(x.Value, out parsedVal))
-                                        break;
-
-                                    DateTime date = (DateTime)parsedVal;
-                                    string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MINUTE);
-                                    //field = new NumericField(x.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetIntValue(int.Parse(dateAsString));
-                                    field =
-                                    new Field(x.Key,
-                                        dateAsString,
-                                        Field.Store.YES,
-                                        lucenePolicy,
-                                        lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                                    );
-                                    break;
-                                }
-                            default:
-                                field =
-                                    new Field(x.Key,
-                                        x.Value,
-                                        Field.Store.YES,
-                                        lucenePolicy,
-                                        lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                                    );
-                                break;
-                        }
-
-                        //if the parsed value is null, this means it couldn't parse and we should log this error
-                        if (field == null)
-                        {
-                            OnIndexingError(new IndexingErrorEventArgs("Could not parse value: " + x.Value + "into the type: " + indexField.DataType, id, null));
-                        }
-                        else
-                        {
-                            d.Add(field);
-
-                            if (indexField.EnableSorting)
-                            {
-                                d.Add(new Field(SortedFieldNamePrefix + x.Key,
-                                        x.Value,
-                                        Field.Store.YES,
-                                        Field.Index.NOT_ANALYZED,
-                                        Field.TermVector.NO
-                                        ));
-                            }
-                        }
-
+                        d.Add(new Field(SortedFieldNamePrefix + f.Key,
+                                f.Value.FieldValue,
+                                Field.Store.YES,
+                                Field.Index.NOT_ANALYZED,
+                                Field.TermVector.NO
+                                ));
                     }
                 }
+
             }
 
-            AddSpecialFieldsToDocument(d, fields);
 
-            var docArgs = new DocumentWritingEventArgs(id, d, fields);
+
+            AddSpecialFieldsToDocument(d, item.Fields);
+
+            var docArgs = new DocumentWritingEventArgs(d, item);
             OnDocumentWriting(docArgs);
             if (docArgs.Cancel)
                 return;
 
             writer.AddDocument(d);
 
-            OnNodeIndexed(new IndexedNodeEventArgs(id));
+            OnNodeIndexed(new IndexedNodeEventArgs(item));
         }
 
 
@@ -1070,9 +859,9 @@ namespace Examine.LuceneEngine.Providers
         /// The dictionary object containing all name/value pairs that are to be put into the index
         /// </param>
         /// <returns></returns>
-        protected virtual IDictionary<string, string> GetSpecialFieldsToIndex(IDictionary<string, string> allValuesForIndexing)
+        protected virtual IDictionary<string, ItemField> GetSpecialFieldsToIndex(IDictionary<string, ItemField> allValuesForIndexing)
         {
-            return new Dictionary<string, string>() 
+            return new Dictionary<string, ItemField>() 
 			{
 				//we want to store the nodeId separately as it's the index
 				{IndexNodeIdFieldName, allValuesForIndexing[IndexNodeIdFieldName]},
@@ -1088,7 +877,7 @@ namespace Examine.LuceneEngine.Providers
         ///     Not the executive = doesn't index, i
         ///     In async mode = use file watcher timer
         /// </summary>
-        protected internal void SafelyProcessQueueItems(IEnumerable<IndexOperation> buffer)
+        protected internal void SafelyProcessQueueItems(Queue<IndexOperation> buffer)
         {
             //if this is not the master indexer, exit
             if (!ExecutiveIndex.IsExecutiveMachine)
@@ -1098,13 +887,15 @@ namespace Examine.LuceneEngine.Providers
             switch (SynchronizationType)
             {
                 case SynchronizationType.SingleThreaded:
-                    var list = new ConcurrentQueue<IndexOperation>();
-                    
                     //add the buffer to the queue
-                    buffer.AsParallel().ForAll(list.Enqueue);                    
+                    var list = new ConcurrentQueue<IndexOperation>(buffer);
                     ForceProcessQueueItems(list);
-                    SetIndexingStopped();
-
+                    //if there are enough commits, then we'll run an optimization
+                    if (CommitCount >= OptimizationCommitThreshold)
+                    {
+                        OptimizeIndex();
+                        CommitCount = 0; //reset the counter
+                    }
                     break;
                 case SynchronizationType.AsyncBackgroundWorker:
                     InitializeBackgroundWorker(buffer);
@@ -1146,75 +937,79 @@ namespace Examine.LuceneEngine.Providers
                 OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, the index doesn't exist!", string.Empty, null));
                 return 0;
             }
-            
-            //set the flag
-            if (SetIndexingStarted())
+
+            if (!_isIndexing)
             {
-                //check if the index is ready to be written to.
-                if (!IndexReady())
+                lock (_indexerLocker)
                 {
-                    OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, the index is currently locked", string.Empty, null));
-                    return 0;
-                }
-
-                //wrap in array because resharper told me to because of access to modified closure
-                IndexWriter[] writer = { GetIndexWriter() };
-
-                //track all of the nodes indexed
-                var indexedNodes = new ConcurrentBag<IndexedNode>();
-
-                try
-                {
-                    //iterate over the concurrent queue
-                    Parallel.For(0, buffer.Count, x =>
+                    if (!_isIndexing)
                     {
-                        //iterate through the items in the buffer, they should be in the exact order in which 
-                        //they were added so shouldn't need to sort anything
+                        _isIndexing = true;
 
-                        //we need to iterate like this because our threadsafe list doesn't allow enumeration
-                        IndexOperation item;
-                        while (buffer.TryDequeue(out item))
+                        //check if the index is ready to be written to.
+                        if (!IndexReady())
                         {
-                            Console.WriteLine("Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
-
-                            switch (item.Operation)
-                            {
-                                case IndexOperationType.Add:
-                                    indexedNodes.Add(ProcessAddQueueItem(item.Item, writer[0]));
-                                    break;
-                                case IndexOperationType.Delete:
-                                    ProcessDeleteQueueItem(item.Item, writer[0]);
-                                    break;
-                                default:
-                                    throw new ArgumentOutOfRangeException();
-                            }
+                            OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, the index is currently locked", string.Empty, null));
+                            return 0;
                         }
-                    });
 
-                    writer[0].Commit(); //commit changes!
-                    writer[0].WaitForMerges(); //wait until commits are done
+                        //wrap in array because resharper told me to because of access to modified closure
+                        IndexWriter[] writer = { GetIndexWriter() };
 
-                    //raise the completed event
-                    OnNodesIndexed(new IndexedNodesEventArgs(IndexerData, indexedNodes));
+                        //track all of the nodes indexed
+                        var indexedNodes = new ConcurrentBag<IndexItem>();
 
+                        try
+                        {
+
+                            //iterate over the concurrent queue
+                            Parallel.For(0, buffer.Count, x =>
+                            {
+                                //iterate through the items in the buffer, they should be in the exact order in which 
+                                //they were added so shouldn't need to sort anything
+
+                                //we need to iterate like this because our threadsafe list doesn't allow enumeration
+                                IndexOperation item;
+                                while (buffer.TryDequeue(out item))
+                                {
+                                    Console.WriteLine("Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
+
+                                    switch (item.Operation)
+                                    {
+                                        case IndexOperationType.Add:
+                                            ProcessAddQueueItem(item.Item, writer[0]);
+                                            indexedNodes.Add(item.Item);
+                                            break;
+                                        case IndexOperationType.Delete:
+                                            ProcessDeleteQueueItem(item.Item, writer[0]);
+                                            break;
+                                        default:
+                                            throw new ArgumentOutOfRangeException();
+                                    }
+                                }
+                            });
+
+                            writer[0].Commit(); //commit changes!
+                            //writer[0].WaitForMerges(); //wait until commits are done
+
+                            //raise the completed event
+                            OnNodesIndexed(new IndexedNodesEventArgs(indexedNodes));
+
+                        }
+                        catch (Exception ex)
+                        {
+                            OnIndexingError(new IndexingErrorEventArgs("Error indexing queue items", string.Empty, ex));
+                        }
+                        finally
+                        {
+                            CloseWriter(ref writer[0]);
+
+                            _isIndexing = false;
+                        }
+
+                        return indexedNodes.Count;
+                    }
                 }
-                catch (Exception ex)
-                {
-                    OnIndexingError(new IndexingErrorEventArgs("Error indexing queue items", string.Empty, ex));
-                }
-                finally
-                {
-                    CloseWriter(ref writer[0]);
-                }
-
-                //if there are enough commits, then we'll run an optimization
-                if (CommitCount >= OptimizationCommitThreshold)
-                {
-                    OptimizeIndex();
-                    CommitCount = 0; //reset the counter
-                }
-
-                return indexedNodes.Count;
             }
 
 
@@ -1223,67 +1018,19 @@ namespace Examine.LuceneEngine.Providers
             OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, another indexing operation is currently in progress", string.Empty, null));
             return 0;
         }
-
-        /// <summary>
-        /// Used for re-indexing many nodes at once, this updates the fields object and appends it to the buffered list of items which
-        /// will then get written to file in one bulk file.
-        /// </summary>
-        /// <param name="fields"></param>
-        /// <param name="id"></param>
-        /// <param name="itemCategory"></param>
-        /// <param name="buffer"></param>
-        protected void BufferAddIndexQueueItem(IDictionary<string, string> fields, string id, string itemCategory, IList<IndexOperation> buffer)
-        {
-            //ensure the special fields are added to the dictionary to be saved to file
-            EnsureSpecialFields(fields, id, itemCategory);
-
-            //ok, everything is ready to go, add it to the buffer
-            buffer.Add(new IndexOperation { Item = new IndexItem { Fields = fields, Id = id, ItemCategory = itemCategory }, Operation = IndexOperationType.Add });
-        }
+   
 
         #endregion
 
         #region Private
 
-        private bool SetIndexingStopped()
-        {
-            if (_isIndexing)
-            {
-                lock (_indexerLocker)
-                {
-                    if (_isIndexing)
-                    {
-                        _isIndexing = false; //success!
-                        return true;
-                    }
-                }
-            }
-            return false; //no deal
-        }
-
-        private bool SetIndexingStarted()
-        {
-            if (!_isIndexing)
-            {
-                lock (_indexerLocker)
-                {
-                    if (!_isIndexing)
-                    {
-                        _isIndexing = true;
-                        return true; //success!
-                    }
-                }
-            }
-            return false; //no deal
-        }
-
-        private void EnsureSpecialFields(IDictionary<string, string> fields, string id, string category)
+        private void EnsureSpecialFields(IndexItem item)
         {
             //ensure the special fields are added to the dictionary to be saved to file
-            if (!fields.ContainsKey(IndexNodeIdFieldName))
-                fields.Add(IndexNodeIdFieldName, id.ToString());
-            if (!fields.ContainsKey(IndexCategoryFieldName))
-                fields.Add(IndexCategoryFieldName, category.ToString());
+            if (!item.Fields.ContainsKey(IndexNodeIdFieldName))
+                item.Fields.Add(IndexNodeIdFieldName, new ItemField(item.Id));
+            if (!item.Fields.ContainsKey(IndexCategoryFieldName))
+                item.Fields.Add(IndexCategoryFieldName, new ItemField(item.ItemCategory));
         }
 
         /// <summary>
@@ -1320,7 +1067,7 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         /// <param name="d"></param>
         /// <param name="fields"></param>
-        private void AddSpecialFieldsToDocument(Document d, IDictionary<string, string> fields)
+        private void AddSpecialFieldsToDocument(Document d, IDictionary<string, ItemField> fields)
         {
             var specialFields = GetSpecialFieldsToIndex(fields);
 
@@ -1328,7 +1075,7 @@ namespace Examine.LuceneEngine.Providers
             {
                 //TODO: we're going to lower case the special fields, the Standard analyzer query parser always lower cases, so 
                 //we need to do that... there might be a nicer way ?
-                d.Add(new Field(s.Key, s.Value.ToLower(), Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS, Field.TermVector.NO));
+                d.Add(new Field(s.Key, s.Value.FieldValue.ToLower(), Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS, Field.TermVector.NO));
             }
         }
 
@@ -1359,9 +1106,9 @@ namespace Examine.LuceneEngine.Providers
             }
         }
 
-        private void InitializeBackgroundWorker(IEnumerable<IndexOperation> buffer)
+        private void InitializeBackgroundWorker(Queue<IndexOperation> buffer)
         {
-           
+
             //if this is not the master indexer anymore... perhaps another server has taken over somehow...
             if (!ExecutiveIndex.IsExecutiveMachine)
             {
@@ -1379,18 +1126,17 @@ namespace Examine.LuceneEngine.Providers
 
                 return;
             }
-            
-            Console.WriteLine("Putting into queue: " + buffer.Count());
 
             //re-index everything in the buffer, add everything safely to our threadsafe queue
-            buffer.AsParallel().ForAll(_asyncQueue.Enqueue);
-
-            Console.WriteLine("Is Busy: " + _isIndexing);
+            while (buffer.Count > 0)
+            {
+                _asyncQueue.Enqueue(buffer.Dequeue());
+            }
 
             //don't run the worker if it's currently running since it will just pick up the rest of the queue during its normal operation
-            if (!_isIndexing)
+            if (!_isIndexing && (_asyncTask == null || _asyncTask.IsCompleted))
             {
-                ThreadPool.QueueUserWorkItem(WorkerThreadDoWork);
+                _asyncTask = Task.Factory.StartNew(WorkerThreadDoWork);
             }
 
         }
@@ -1398,10 +1144,7 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Uses a background worker thread to do all of the indexing
         /// </summary>
-        /// <remarks>>
-        /// This will continue to run forever until cancelled is called
-        /// </remarks>
-        void WorkerThreadDoWork(object o)
+        void WorkerThreadDoWork()
         {
             //keep processing until it is complete
             var numProcessedItems = 0;
@@ -1410,7 +1153,13 @@ namespace Examine.LuceneEngine.Providers
                 numProcessedItems = ForceProcessQueueItems(_asyncQueue);
             } while (!_isCancelling && numProcessedItems > 0);
 
-            SetIndexingStopped();
+            //if there are enough commits, then we'll run an optimization
+            if (CommitCount >= OptimizationCommitThreshold)
+            {
+                OptimizeIndex();
+                CommitCount = 0; //reset the counter
+            }
+
         }
 
         /// <summary>
@@ -1436,28 +1185,24 @@ namespace Examine.LuceneEngine.Providers
                 return;
             }
             var term = x.Fields.First();
-            DeleteFromIndex(new Term(term.Key, term.Value), iw);
+            DeleteFromIndex(new Term(term.Key, term.Value.FieldValue), iw);
 
             CommitCount++;
         }
-        
+
         /// <summary>
         /// Reads the FileInfo passed in into a dictionary object and adds it to the index
         /// </summary>
         /// <param name="x"></param>
         /// <param name="writer"></param>
         /// <returns></returns>
-        private IndexedNode ProcessAddQueueItem(IndexItem x, IndexWriter writer)
+        private void ProcessAddQueueItem(IndexItem x, IndexWriter writer)
         {
-            //get the node id
-            var id = x.Fields[IndexNodeIdFieldName];
 
             //now, add the index with our dictionary object
-            AddDocument(x.Fields, writer, id, x.Fields[IndexCategoryFieldName]);
+            AddDocument(x, writer);
 
             CommitCount++;
-
-            return new IndexedNode() { Id = id, Type = x.Fields[IndexCategoryFieldName] };
         }
 
         private void CloseWriter(ref IndexWriter writer)
@@ -1496,7 +1241,7 @@ namespace Examine.LuceneEngine.Providers
 
 
         #region IDisposable Members
-        
+
         protected override void DisposeResources()
         {
             if (!_isCancelling)
@@ -1509,10 +1254,10 @@ namespace Examine.LuceneEngine.Providers
                     }
                 }
             }
-        
+
             InternalSearcher.Dispose();
-            LuceneDirectory.Close();            
-            
+            LuceneDirectory.Close();
+
         }
 
         #endregion

@@ -11,7 +11,7 @@ namespace Examine.LuceneEngine
     /// <summary>
     /// Event arguments for a Document Writing event
     /// </summary>
-    public class DocumentWritingEventArgs : CancelEventArgs, INodeEventArgs
+    public class DocumentWritingEventArgs : CancelEventArgs
     {
         /// <summary>
         /// Lucene.NET Document, including all previously added fields
@@ -20,23 +20,17 @@ namespace Examine.LuceneEngine
         /// <summary>
         /// Fields of the indexer
         /// </summary>
-        public IDictionary<string, string> Fields { get; private set; }
-        /// <summary>
-        /// NodeId of the document being written
-        /// </summary>
-        public string Id { get; private set; }
+        public IndexItem Item { get; private set; }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="id"></param>
         /// <param name="d"></param>
-        /// <param name="fields"></param>
-        public DocumentWritingEventArgs(string id, Document d, IDictionary<string, string> fields)
+        /// <param name="item"></param>
+        public DocumentWritingEventArgs(Document d, IndexItem item)
         {
-            this.Id = id;
             this.Document = d;
-            this.Fields = fields;
+            this.Item = item;
         }
     }
 }

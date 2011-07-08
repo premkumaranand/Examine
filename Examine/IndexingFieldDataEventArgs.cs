@@ -9,7 +9,7 @@ namespace Examine
     /// <summary>
     /// 
     /// </summary>
-    public class IndexingFieldDataEventArgs : EventArgs, INodeEventArgs
+    public class IndexingFieldDataEventArgs : EventArgs
     {
 
         /// <summary>
@@ -19,14 +19,12 @@ namespace Examine
         /// <param name="fieldName">Name of the field.</param>
         /// <param name="fieldValue">The field value.</param>
         /// <param name="isStandardField">if set to <c>true</c> [is standard field].</param>
-        /// <param name="id">The node id.</param>
-        public IndexingFieldDataEventArgs(IndexItem item, string fieldName, string fieldValue, bool isStandardField, string id)
+        public IndexingFieldDataEventArgs(IndexItem item, string fieldName, ItemField fieldValue, bool isStandardField)
         {
             this.Item = item;
             this.FieldName = fieldName;
             this.FieldValue = fieldValue;
             this.IsStandardField = isStandardField;
-            this.Id = id;
         }
 
         /// <summary>
@@ -43,7 +41,7 @@ namespace Examine
         /// <summary>
         /// Gets the field value.
         /// </summary>
-        public string FieldValue { get; private set; }
+        public ItemField FieldValue { get; private set; }
         /// <summary>
         /// Gets a value indicating whether this instance is standard field.
         /// </summary>
@@ -52,13 +50,6 @@ namespace Examine
         /// </value>
         public bool IsStandardField { get; private set; }
 
-        #region INodeEventArgs Members
-
-        /// <summary>
-        /// Gets the node id.
-        /// </summary>
-        public string Id { get; private set; }
-
-        #endregion
+       
     }
 }
