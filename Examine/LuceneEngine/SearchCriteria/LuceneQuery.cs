@@ -52,7 +52,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation Field(string fieldName, string fieldValue)
         {
-            return this._search.FieldInternal(fieldName, new ExamineValue(Examineness.Explicit, fieldValue), _occurance);
+            return this._search.FieldInternal(fieldName, new ExamineValue(Examineness.Default, fieldValue), _occurance);
         }
 
         /// <summary>
@@ -250,7 +250,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var fieldVals = new List<IExamineValue>();
             foreach (var f in query)
             {
-                fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
+                fieldVals.Add(new ExamineValue(Examineness.Default, f));
             }
             return this._search.GroupedAndInternal(fields.ToArray(), fieldVals.ToArray(), this._occurance);
         }
@@ -277,7 +277,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var fieldVals = new List<IExamineValue>();
             foreach (var f in query)
             {
-                fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
+                fieldVals.Add(new ExamineValue(Examineness.Default, f));
             }
             return this._search.GroupedOrInternal(fields.ToArray(), fieldVals.ToArray(), this._occurance);
         }
@@ -304,7 +304,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var fieldVals = new List<IExamineValue>();
             foreach (var f in query)
             {
-                fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
+                fieldVals.Add(new ExamineValue(Examineness.Default, f));
             }
             return this._search.GroupedNotInternal(fields.ToArray(), fieldVals.ToArray(), this._occurance);
         }
@@ -332,7 +332,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var fieldVals = new List<IExamineValue>();
             foreach (var f in query)
             {
-                fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
+                fieldVals.Add(new ExamineValue(Examineness.Default, f));
             }
             return this._search.GroupedFlexibleInternal(fields.ToArray(), operations.ToArray(), fieldVals.ToArray(), _occurance);
         }

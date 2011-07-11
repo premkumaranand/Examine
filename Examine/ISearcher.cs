@@ -41,17 +41,17 @@ namespace Examine
         /// <summary>
         /// Creates a search criteria instance as required by the implementation
         /// </summary>
-        /// <param name="type">The type of index (i.e. Media or Content )</param>
-        ISearchCriteria CreateSearchCriteria(string type);
+        /// <param name="category">The type of index (i.e. Media or Content )</param>
+        ISearchCriteria CreateSearchCriteria(string category);
 
         /// <summary>
         /// Creates a search criteria instance as required by the implementation
         /// </summary>
-        /// <param name="type">The type of data in the index.</param>
+        /// <param name="category">The type of data in the index.</param>
         /// <param name="defaultOperation">The default operation.</param>
         /// <returns>
         /// An instance of <see cref="Examine.SearchCriteria.ISearchCriteria"/>
         /// </returns>
-        ISearchCriteria CreateSearchCriteria(string type, BooleanOperation defaultOperation);
+        ISearchCriteria CreateSearchCriteria(string category, BooleanOperation defaultOperation);
     }
 }

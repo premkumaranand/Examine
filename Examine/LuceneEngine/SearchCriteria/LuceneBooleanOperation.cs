@@ -60,7 +60,7 @@ namespace Examine.LuceneEngine.SearchCriteria
 
                 //this.search.query.Add(this.search.queryParser.Parse("(" + query.ToString() + ")"), BooleanClause.Occur.MUST);
 
-                this._search.FieldInternal(LuceneIndexer.IndexCategoryFieldName, new ExamineValue(Examineness.Explicit, this._search.SearchIndexType.ToString()), BooleanClause.Occur.MUST);
+                this._search.FieldInternal(LuceneIndexer.IndexCategoryFieldName, _search.SearchIndexType.Escape(), BooleanClause.Occur.MUST);
             }
             
             return this._search;

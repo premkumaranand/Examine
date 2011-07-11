@@ -169,9 +169,9 @@ namespace Examine
             return this.CreateSearchCriteria(string.Empty, BooleanOperation.And);
         }
 
-        public ISearchCriteria CreateSearchCriteria(string type)
+        public ISearchCriteria CreateSearchCriteria(string category)
         {
-            return this.CreateSearchCriteria(type, BooleanOperation.And);
+            return this.CreateSearchCriteria(category, BooleanOperation.And);
         }
 
         public ISearchCriteria CreateSearchCriteria(BooleanOperation defaultOperation)
@@ -179,9 +179,9 @@ namespace Examine
             return this.CreateSearchCriteria(string.Empty, defaultOperation);
         }
 
-        public ISearchCriteria CreateSearchCriteria(string type, BooleanOperation defaultOperation)
+        public ISearchCriteria CreateSearchCriteria(string category, BooleanOperation defaultOperation)
         {
-            return this.DefaultSearchProvider.CreateSearchCriteria(type, defaultOperation);
+            return this.DefaultSearchProvider.CreateSearchCriteria(category, defaultOperation);
         }
 
         #endregion

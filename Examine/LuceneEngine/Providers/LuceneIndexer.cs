@@ -1156,10 +1156,8 @@ namespace Examine.LuceneEngine.Providers
             var specialFields = GetSpecialFieldsToIndex(fields);
 
             foreach (var s in specialFields)
-            {
-                //TODO: we're going to lower case the special fields, the Standard analyzer query parser always lower cases, so 
-                //we need to do that... there might be a nicer way ?
-                d.Add(new Field(s.Key, s.Value.FieldValue.ToLower(), Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS, Field.TermVector.NO));
+            {                
+                d.Add(new Field(s.Key, s.Value.FieldValue, Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS, Field.TermVector.NO));
             }
         }
 

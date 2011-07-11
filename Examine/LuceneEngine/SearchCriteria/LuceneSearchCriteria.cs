@@ -25,11 +25,11 @@ namespace Examine.LuceneEngine.SearchCriteria
         private readonly BooleanClause.Occur _occurance;
         private readonly Lucene.Net.Util.Version _luceneVersion = Lucene.Net.Util.Version.LUCENE_29;
 
-        internal LuceneSearchCriteria(string type, Analyzer analyzer, string[] fields, bool allowLeadingWildcards, BooleanOperation occurance)
+        internal LuceneSearchCriteria(string category, Analyzer analyzer, string[] fields, bool allowLeadingWildcards, BooleanOperation occurance)
         {
             Enforcer.ArgumentNotNull(fields, "fields");
 
-            SearchIndexType = type;
+            SearchIndexType = category;
             Query = new BooleanQuery();
             this.BooleanOperation = occurance;
             this.QueryParser = new MultiFieldQueryParser(_luceneVersion, fields, analyzer);
@@ -111,7 +111,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         {
             Enforcer.ArgumentNotNull(fieldName, "fieldName");
             Enforcer.ArgumentNotNull(fieldValue, "fieldValue");
-            return this.FieldInternal(fieldName, new ExamineValue(Examineness.Explicit, fieldValue), _occurance);
+            return this.FieldInternal(fieldName, new ExamineValue(Examineness.Default, fieldValue), _occurance);
         }
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace Examine.LuceneEngine.SearchCriteria
                         queryToAdd = ParseRawQuery(qry); 
                     }
                     break;
-                case Examineness.Explicit:
+                case Examineness.Default:
                 default:
                     if (useQueryParser)
                     {
@@ -426,7 +426,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var fieldVals = new List<IExamineValue>();
             foreach (var f in query)
             {
-                fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
+                fieldVals.Add(new ExamineValue(Examineness.Default, f));
             }
             return this.GroupedAnd(fields.ToArray(), fieldVals.ToArray());
         }
@@ -459,7 +459,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var fieldVals = new List<IExamineValue>();
             foreach (var f in query)
             {
-                fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
+                fieldVals.Add(new ExamineValue(Examineness.Default, f));
             }
 
             return this.GroupedOr(fields.ToArray(), fieldVals.ToArray());
@@ -492,7 +492,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var fieldVals = new List<IExamineValue>();
             foreach (var f in query)
             {
-                fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
+                fieldVals.Add(new ExamineValue(Examineness.Default, f));
             }
 
             return this.GroupedNot(fields.ToArray(), fieldVals.ToArray());
@@ -559,7 +559,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var fieldVals = new List<IExamineValue>();
             foreach (var f in query)
             {
-                fieldVals.Add(new ExamineValue(Examineness.Explicit, f));
+                fieldVals.Add(new ExamineValue(Examineness.Default, f));
             }
 
             return this.GroupedFlexible(fields.ToArray(), operations.ToArray(), fieldVals.ToArray());
@@ -613,7 +613,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public ISearchCriteria RawQuery(string query)
         {
-            this.Query.Add(this.QueryParser.Parse(query), this._occurance);            
+            this.Query.Add(ParseRawQuery(query), this._occurance);
             return this;
         }
 

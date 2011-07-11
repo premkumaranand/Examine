@@ -95,12 +95,12 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Creates an instance of SearchCriteria for the provider
         /// </summary>
-        /// <param name="type">The type of data in the index.</param>
+        /// <param name="category">The type of data in the index.</param>
         /// <param name="defaultOperation">The default operation.</param>
         /// <returns>A blank SearchCriteria</returns>
-        public override ISearchCriteria CreateSearchCriteria(string type, BooleanOperation defaultOperation)
+        public override ISearchCriteria CreateSearchCriteria(string category, BooleanOperation defaultOperation)
         {
-            return new LuceneSearchCriteria(type, IndexingAnalyzer, GetSearchFields(), EnableLeadingWildcards, defaultOperation);
+            return new LuceneSearchCriteria(category, IndexingAnalyzer, GetSearchFields(), EnableLeadingWildcards, defaultOperation);
         }
 
         /// <summary>
@@ -157,9 +157,9 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Creates an instance of SearchCriteria for the provider
         /// </summary>
-        public override ISearchCriteria CreateSearchCriteria(string type)
+        public override ISearchCriteria CreateSearchCriteria(string category)
         {
-            return CreateSearchCriteria(type, BooleanOperation.And);
+            return CreateSearchCriteria(category, BooleanOperation.And);
         }
 
         public override ISearchCriteria CreateSearchCriteria(BooleanOperation defaultOperation)
