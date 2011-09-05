@@ -1037,44 +1037,41 @@ namespace Examine.LuceneEngine.Providers
                             return 0;
                         }
 
-                        //wrap in array because resharper told me to because of access to modified closure
-                        IndexWriter[] writer = { GetIndexWriter() };
+
+                        IndexWriter writer = null;
 
                         //track all of the nodes indexed
                         var indexedNodes = new ConcurrentBag<IndexItem>();
 
                         try
                         {
+                            writer = GetIndexWriter();
 
-                            ////iterate over the concurrent queue
-                            //Parallel.For(0, buffer.Count, x =>
-                            //{
-                                //iterate through the items in the buffer, they should be in the exact order in which 
-                                //they were added so shouldn't need to sort anything
+                            //iterate through the items in the buffer, they should be in the exact order in which 
+                            //they were added so shouldn't need to sort anything
 
-                                //we need to iterate like this because our threadsafe list doesn't allow enumeration
-                                IndexOperation item;
-                                while (buffer.TryDequeue(out item))
+                            //we need to iterate like this because our threadsafe list doesn't allow enumeration
+                            IndexOperation item;
+                            while (buffer.TryDequeue(out item))
+                            {
+                                Console.WriteLine("Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
+
+                                switch (item.Operation)
                                 {
-                                    Console.WriteLine("Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
-
-                                    switch (item.Operation)
-                                    {
-                                        case IndexOperationType.Add:
-                                            ProcessAddQueueItem(item.Item, writer[0]);
-                                            indexedNodes.Add(item.Item);
-                                            break;
-                                        case IndexOperationType.Delete:
-                                            ProcessDeleteQueueItem(item.Item, writer[0]);
-                                            break;
-                                        default:
-                                            throw new ArgumentOutOfRangeException();
-                                    }
+                                    case IndexOperationType.Add:
+                                        ProcessAddQueueItem(item.Item, writer);
+                                        indexedNodes.Add(item.Item);
+                                        break;
+                                    case IndexOperationType.Delete:
+                                        ProcessDeleteQueueItem(item.Item, writer);
+                                        break;
+                                    default:
+                                        throw new ArgumentOutOfRangeException();
                                 }
-                            //});
+                            }
 
-                            writer[0].Commit(); //commit changes!
-                            writer[0].WaitForMerges(); //wait until commits are done
+                            writer.Commit(); //commit changes!
+                            writer.WaitForMerges(); //wait until commits are done
 
                             //raise the completed event
                             OnNodesIndexed(new IndexedNodesEventArgs(indexedNodes));
@@ -1086,7 +1083,7 @@ namespace Examine.LuceneEngine.Providers
                         }
                         finally
                         {
-                            CloseWriter(ref writer[0]);
+                            CloseWriter(ref writer);
 
                             _isIndexing = false;
                         }
