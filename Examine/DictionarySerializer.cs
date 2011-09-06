@@ -15,7 +15,7 @@ namespace Examine
         ///</summary>
         internal static Encoding DefaultFileEncoding = Encoding.UTF8;
 
-        public static void SaveToDisk(this IEnumerable<Dictionary<string, string>> items, FileInfo fi)
+        public static void SaveToDisk(this IEnumerable<IDictionary<string, string>> items, FileInfo fi)
         {
             var xml = new XDocument();
             var root = new XElement("documents");
@@ -32,7 +32,7 @@ namespace Examine
             xml.SaveToDisk(fi);
         }
 
-        public static void SaveToDisk<TKey>(this Dictionary<TKey, string> d, FileInfo fi)
+        public static void SaveToDisk<TKey>(this IDictionary<TKey, string> d, FileInfo fi)
         {
             var xml = new XDocument();
             var root = new XElement("document");
@@ -78,7 +78,7 @@ namespace Examine
                                      new XCData(keyval.Value)));
         }
 
-        public static void ReadFromDisk(this List<Dictionary<string, string>> d, FileInfo fi, out XDocument xDoc)
+        public static void ReadFromDisk(this List<IDictionary<string, string>> d, FileInfo fi, out XDocument xDoc)
         {
             d.Clear();
             using (var fs = new FileStream(fi.FullName, FileMode.Open))
@@ -99,7 +99,7 @@ namespace Examine
             }
         }
 
-        public static void ReadFromDisk(this Dictionary<string, string> d, FileInfo fi)
+        public static void ReadFromDisk(this IDictionary<string, string> d, FileInfo fi)
         {
             d.Clear();
             using (var fs = new FileStream(fi.FullName, FileMode.Open))

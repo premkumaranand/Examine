@@ -50,7 +50,7 @@ namespace Examine.Test
             //assert
             file.Refresh();
             Assert.IsTrue(file.Exists);
-            var result = new List<Dictionary<string, string>>();
+            var result = new List<IDictionary<string, string>>();
             XDocument xml;
             result.ReadFromDisk(file, out xml);
 

@@ -318,7 +318,7 @@ namespace Examine.LuceneEngine
         /// Read the machines EXA file
         /// </summary>
         /// <returns></returns>
-        private Dictionary<EXAFields, string> GetEXA()
+        private IDictionary<EXAFields, string> GetEXA()
         {
             var dExa = new Dictionary<string, string>();
             dExa.ReadFromDisk(_exaFile);
@@ -329,7 +329,7 @@ namespace Examine.LuceneEngine
         /// Read the machines LCK file
         /// </summary>
         /// <returns></returns>
-        private Dictionary<LCKFields, string> GetLCK()
+        private IDictionary<LCKFields, string> GetLCK()
         {
             var dLck = new Dictionary<string, string>();
             dLck.ReadFromDisk(_lckFile);

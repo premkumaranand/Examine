@@ -94,7 +94,7 @@ namespace Examine.LuceneEngine
         /// <summary>
         /// Internal cache of search results
         /// </summary>
-        protected Dictionary<int, SearchResult> Docs = new Dictionary<int, SearchResult>();
+        protected IDictionary<int, SearchResult> Docs = new Dictionary<int, SearchResult>();
 
         /// <summary>
         /// Creates the search result from a <see cref="Lucene.Net.Documents.Document"/>
