@@ -70,7 +70,7 @@ namespace Examine.Test.Index
 
             //act
 
-            //this will index enough times to optimize which will run a dedupe process... though there shouldn't be duplicates anyways
+            //this will index enough times to optimize ... though there shouldn't be duplicates anyways
             for(var i = 0;i<102;i++)
             {
                 var op = new IndexOperation
@@ -185,7 +185,7 @@ namespace Examine.Test.Index
 
             Assert.AreEqual(3, results.First().Fields.Count());
             Assert.AreEqual("test1", results.First().Fields[LuceneIndexer.IndexNodeIdFieldName]);
-            Assert.AreEqual("testcategory", results.First().Fields[LuceneIndexer.IndexCategoryFieldName]);
+            Assert.AreEqual("TestCategory", results.First().Fields[LuceneIndexer.IndexCategoryFieldName]);
         }
 
         [TestMethod]

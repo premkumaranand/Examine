@@ -9,7 +9,7 @@ namespace Examine
     /// <summary>
     /// An interface representing an Examine Searcher
     /// </summary>
-    public interface ISearcher
+    public interface ISearcher : IDisposable
     {
         /// <summary>
         /// Searches the specified search text in all fields of the index

@@ -1,11 +1,12 @@
-﻿using System.Xml.Linq;
+﻿using System;
+using System.Xml.Linq;
 
 namespace Examine
 {
     /// <summary>
     /// Interface to represent an Examine Indexer
     /// </summary>
-    public interface IIndexer
+    public interface IIndexer : IDisposable
     {
         /// <summary>
         /// Forces a particular XML node to be reindexed

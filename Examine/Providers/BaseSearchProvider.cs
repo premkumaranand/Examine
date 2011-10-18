@@ -12,7 +12,7 @@ namespace Examine.Providers
     ///<summary>
     /// Abstract search provider object
     ///</summary>
-    public abstract class BaseSearchProvider : ProviderBase, ISearcher, IDisposable
+    public abstract class BaseSearchProvider : ProviderBase, ISearcher
     {
         #region ISearcher Members
 

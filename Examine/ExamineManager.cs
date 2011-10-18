@@ -185,5 +185,54 @@ namespace Examine
         }
 
         #endregion
+
+        #region IDisposable Members
+
+        private bool _disposed = false;
+
+        /// <summary>
+        /// When the object is disposed, all data should be written
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources
+        /// </summary>
+        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        protected void Dispose(bool disposing)
+        {
+            // Check to see if Dispose has already been called.
+            if (!_disposed)
+            {
+                // If disposing equals true, dispose all managed
+                // and unmanaged resources.
+                if (disposing)
+                {
+                    DisposeResources();
+                }
+                _disposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Disposes the indexers and searchers
+        /// </summary>
+        protected virtual void DisposeResources()
+        {
+            foreach(var i in this.IndexProviderCollection)
+            {
+                i.Dispose();
+            }
+            foreach(var s in this.SearchProviderCollection)
+            {
+                s.Dispose();
+            }
+        }
+
+        #endregion
     }
 }

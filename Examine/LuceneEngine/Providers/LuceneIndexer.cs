@@ -59,7 +59,6 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Constructor to allow for creating an indexer at runtime which uses the Lucene SimpleFSDirectory
         /// </summary>
-        /// <param name="indexerData"></param>
         /// <param name="workingFolder"></param>
         /// <param name="analyzer"></param>
         /// <param name="synchronizationType"></param>
@@ -143,6 +142,41 @@ namespace Examine.LuceneEngine.Providers
         public override void Initialize(string name, NameValueCollection config)
         {
             base.Initialize(name, config);
+
+            if (config["autoOptimizeCommitThreshold"] == null)
+            {
+                OptimizationCommitThreshold = 100;
+            }
+            else
+            {
+                int autoCommitThreshold;
+                if (int.TryParse(config["autoOptimizeCommitThreshold"], out autoCommitThreshold))
+                {
+                    OptimizationCommitThreshold = autoCommitThreshold;
+                }
+                else
+                {
+                    throw new InvalidCastException("Could not parse autoCommitThreshold value into an integer");
+                }
+            }
+
+            if (config["autoOptimize"] == null)
+            {
+                AutomaticallyOptimize = true;
+            }
+            else
+            {
+                bool autoOptimize;
+                if (bool.TryParse(config["autoOptimize"], out autoOptimize))
+                {
+                    AutomaticallyOptimize = autoOptimize;
+                }
+                else
+                {
+                    throw new InvalidCastException("Could not parse autoOptimize value into a boolean");
+                }
+
+            }
 
             //Need to check if the index set or IndexerData is specified...
 
@@ -269,12 +303,7 @@ namespace Examine.LuceneEngine.Providers
         /// The prefix added to a field when it is included in the index for sorting
         /// </summary>
         public const string SortedFieldNamePrefix = SpecialFieldPrefix + "Sort_";
-
-        /// <summary>
-        /// Specifies how many index commits are performed before running an optimization
-        /// </summary>
-        public int OptimizationCommitThreshold { get; internal set; }
-
+        
         /// <summary>
         /// Used to store a non-tokenized category for the document
         /// </summary>
@@ -284,12 +313,7 @@ namespace Examine.LuceneEngine.Providers
         /// Used to store a non-tokenized type for the document
         /// </summary>
         public const string IndexNodeIdFieldName = SpecialFieldPrefix + "NodeId";
-
-        /// <summary>
-        /// Used to timestamp a record, this is used to deduplicate
-        /// </summary>
-        public const string IndexItemTimeStamp = SpecialFieldPrefix + "TimeStamp";
-
+        
         /// <summary>
         /// Used to perform thread locking
         /// </summary>
@@ -303,7 +327,7 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Used for double check locking during an index operation
         /// </summary>
-        private bool _isIndexing = false;
+        private volatile bool _isIndexing = false;
 
         private readonly object _cancelLocker = new object();
 
@@ -312,7 +336,7 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Used to cancel the async operation
         /// </summary>
-        private bool _isCancelling = false;
+        private volatile bool _isCancelling = false;
 
         /// <summary>
         /// We need an internal searcher used to search against our own index.
@@ -323,6 +347,17 @@ namespace Examine.LuceneEngine.Providers
         #endregion
 
         #region Properties
+
+
+        ///<summary>
+        /// This will automatically optimize the index every 'AutomaticCommitThreshold' commits
+        ///</summary>
+        public bool AutomaticallyOptimize { get; protected set; }
+
+        /// <summary>
+        /// The number of commits to wait for before optimizing the index if AutomaticallyOptimize = true
+        /// </summary>
+        public int OptimizationCommitThreshold { get; internal set; }
 
         /// <summary>
         /// The analyzer to use when indexing content, by default, this is set to StandardAnalyzer
@@ -576,6 +611,8 @@ namespace Examine.LuceneEngine.Providers
                 {
                     if (!_isIndexing)
                     {
+                        _isIndexing = true;
+
                         IndexWriter writer = null;
                         try
                         {
@@ -591,57 +628,7 @@ namespace Examine.LuceneEngine.Providers
                             }
 
                             OnIndexOptimizing(new EventArgs());
-
-                            //first, lets remove any duplicates that might exist
-                            var reader = IndexReader.Open(LuceneDirectory, false);
-                            var theTerms = reader.Terms(new Term(IndexNodeIdFieldName));
-                            do
-                            {
-                                var term = theTerms.Term();
-
-                                if ((term == null) || term.Field().ToUpper() != IndexNodeIdFieldName.ToUpper())
-                                {
-                                    break;
-                                }
-
-                                if (theTerms.DocFreq() > 1)
-                                {
-                                    var allDocs = new List<int>();
-                                    var timeStampDocs = new Dictionary<int, long>();
-                                    var td = reader.TermDocs(term);
-                                    while(td.Next())
-                                    {
-                                        allDocs.Add(td.Doc());
-                                    }
-                                    foreach(var d in allDocs)
-                                    {
-                                        var doc = reader.Document(d);
-                                        var timeStamp = doc.Get(IndexItemTimeStamp);
-                                        if (!string.IsNullOrEmpty(timeStamp))
-                                        {
-                                            long realStamp;
-                                            if (long.TryParse(timeStamp, out realStamp))
-                                            {
-                                                timeStampDocs.Add(d, realStamp);
-                                            }
-                                            
-                                        }
-                                    }
-                                    //now that we have all of the timestamped docs, we can delete the old ones,
-                                    //find the latest and remove it from the dictionary
-                                    var maxStamp = timeStampDocs.First(latest => latest.Value == timeStampDocs.Max(x => x.Value));
-                                    timeStampDocs.Remove(maxStamp.Key);
-                                    foreach (var d in timeStampDocs)
-                                    {
-                                        reader.DeleteDocument(d.Key);
-                                    } 
-                                }
-                            }
-                            while (theTerms.Next());
-
-                            //close the reader
-                            reader.Close();
-
+                            
                             //open the writer for optization
                             writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
 
@@ -687,6 +674,7 @@ namespace Examine.LuceneEngine.Providers
                     return true;
 
                 iw.DeleteDocuments(indexTerm);
+                iw.Commit(); //commit the changes!
 
                 OnIndexDeleted(new DeleteIndexEventArgs(new KeyValuePair<string, string>(indexTerm.Field(), indexTerm.Text())));
                 return true;
@@ -924,7 +912,7 @@ namespace Examine.LuceneEngine.Providers
             if (docArgs.Cancel)
                 return;
 
-            writer.AddDocument(d);
+            writer.UpdateDocument(new Term(IndexNodeIdFieldName, item.Id), d);
 
             OnNodeIndexed(new IndexedNodeEventArgs(item));
         }
@@ -948,9 +936,7 @@ namespace Examine.LuceneEngine.Providers
 				//we want to store the nodeId separately as it's the index
 				{IndexNodeIdFieldName, allValuesForIndexing[IndexNodeIdFieldName]},
 				//add the index type first
-				{IndexCategoryFieldName, allValuesForIndexing[IndexCategoryFieldName]},
-                //add the timestamp
-				{IndexItemTimeStamp, new ItemField(DateTime.UtcNow.Ticks.ToString())}
+				{IndexCategoryFieldName, allValuesForIndexing[IndexCategoryFieldName]}
 			};
         }
 
@@ -1022,6 +1008,13 @@ namespace Examine.LuceneEngine.Providers
                 return 0;
             }
 
+            //check if the index is ready to be written to.
+            if (!IndexReady())
+            {
+                OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, the index is currently locked", string.Empty, null));
+                return 0;
+            }
+
             if (!_isIndexing)
             {
                 lock (_indexerLocker)
@@ -1029,23 +1022,17 @@ namespace Examine.LuceneEngine.Providers
                     if (!_isIndexing)
                     {
                         _isIndexing = true;
-
-                        //check if the index is ready to be written to.
-                        if (!IndexReady())
-                        {
-                            OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, the index is currently locked", string.Empty, null));
-                            return 0;
-                        }
-
-
-                        IndexWriter writer = null;
+                        
+                        IndexWriter inMemoryWriter = null;
+                        IndexWriter realWriter = null;
 
                         //track all of the nodes indexed
                         var indexedNodes = new ConcurrentBag<IndexItem>();
 
                         try
                         {
-                            writer = GetIndexWriter();
+                            inMemoryWriter = GetNewInMemoryWriter();
+                            realWriter = GetIndexWriter();
 
                             //iterate through the items in the buffer, they should be in the exact order in which 
                             //they were added so shouldn't need to sort anything
@@ -1059,19 +1046,21 @@ namespace Examine.LuceneEngine.Providers
                                 switch (item.Operation)
                                 {
                                     case IndexOperationType.Add:
-                                        ProcessAddQueueItem(item.Item, writer);
+                                        ProcessAddQueueItem(item.Item, inMemoryWriter);
                                         indexedNodes.Add(item.Item);
                                         break;
                                     case IndexOperationType.Delete:
-                                        ProcessDeleteQueueItem(item.Item, writer);
+                                        ProcessDeleteQueueItem(item.Item, realWriter);
                                         break;
                                     default:
                                         throw new ArgumentOutOfRangeException();
                                 }
                             }
 
-                            writer.Commit(); //commit changes!
-                            writer.WaitForMerges(); //wait until commits are done
+                            inMemoryWriter.Commit(); //commit changes!
+
+                            //merge the index into the 'real' one
+                            realWriter.AddIndexesNoOptimize(new[] { inMemoryWriter.GetDirectory() });
 
                             //raise the completed event
                             OnNodesIndexed(new IndexedNodesEventArgs(indexedNodes));
@@ -1083,7 +1072,8 @@ namespace Examine.LuceneEngine.Providers
                         }
                         finally
                         {
-                            CloseWriter(ref writer);
+                            CloseWriter(ref inMemoryWriter);
+                            CloseWriter(ref realWriter);
 
                             _isIndexing = false;
                         }
@@ -1248,6 +1238,15 @@ namespace Examine.LuceneEngine.Providers
         private IndexWriter GetIndexWriter()
         {
             return new IndexWriter(LuceneDirectory, IndexingAnalyzer, false, IndexWriter.MaxFieldLength.UNLIMITED);
+        }
+
+        /// <summary>
+        /// Creates a new in-memory index with a writer for it
+        /// </summary>
+        /// <returns></returns>
+        private IndexWriter GetNewInMemoryWriter()
+        {
+            return new IndexWriter(new RAMDirectory(), IndexingAnalyzer, true, IndexWriter.MaxFieldLength.UNLIMITED);
         }
 
         /// <summary>

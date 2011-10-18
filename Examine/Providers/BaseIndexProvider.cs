@@ -8,7 +8,7 @@ namespace Examine.Providers
     /// <summary>
     /// Base class for an Examine Index Provider. You must implement this class to create an IndexProvider
     /// </summary>
-    public abstract class BaseIndexProvider : ProviderBase, IIndexer, IDisposable
+    public abstract class BaseIndexProvider : ProviderBase, IIndexer
     {
 
         #region IIndexer members      
