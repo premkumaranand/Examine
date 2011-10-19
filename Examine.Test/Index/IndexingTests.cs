@@ -27,6 +27,44 @@ namespace Examine.Test.Index
         }
 
         [TestMethod]
+        public void Indexing_Item_Deletes()
+        {
+            //arrange
+
+            var indexer = GetIndexer();
+            indexer.PerformIndexing(
+                new IndexOperation
+                {
+                    Item = new IndexItem
+                    {
+                        Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("hello world") } },
+                        Id = "test1",
+                        ItemCategory = "TestCategory"
+                    },
+                    Operation = IndexOperationType.Add
+                });
+
+            //act
+
+            indexer.PerformIndexing(new IndexOperation
+                {
+                    Operation = IndexOperationType.Delete,
+                    Item = new IndexItem
+                        {
+                            Id = "test1"
+                        }
+                });
+
+            //assert
+
+            var searcher = GetSearcher();
+            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test1").Compile());
+
+            Assert.AreEqual(0, results.Count());
+
+        }
+
+        [TestMethod]
         public void Indexing_Item_Indexed()
         {
             //arrange

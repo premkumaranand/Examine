@@ -89,7 +89,6 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Constructor to allow for creating an indexer at runtime which allows specifying a custom lucene 'Directory'
         /// </summary>
-        /// <param name="indexerData"></param>
         /// <param name="workingFolder"></param>
         /// <param name="analyzer"></param>
         /// <param name="synchronizationType"></param>
@@ -1257,13 +1256,13 @@ namespace Examine.LuceneEngine.Providers
         private void ProcessDeleteQueueItem(IndexItem x, IndexWriter iw)
         {
             //we know that there's only ever one item saved to the dictionary for deletions
-            if (x.Fields.Count != 1)
+            if (string.IsNullOrEmpty(x.Id))
             {
-                OnIndexingError(new IndexingErrorEventArgs("Could not remove queue item from index, the dictionary is not properly formatted", string.Empty, null));
+                OnIndexingError(new IndexingErrorEventArgs("Could not remove queue item from index, the id is null or empty", string.Empty, null));
                 return;
             }
-            var term = x.Fields.First();
-            DeleteFromIndex(new Term(term.Key, term.Value.FieldValue), iw);
+
+            DeleteFromIndex(new Term(IndexNodeIdFieldName, x.Id), iw);
 
             CommitCount++;
         }
