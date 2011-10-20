@@ -17,8 +17,8 @@ namespace Examine.Test.Index
     [TestClass]
     public class IndexingTests
     {
-        private Lucene.Net.Store.Directory _luceneDirectory;
-        private DirectoryInfo _workingFolder;
+        private readonly Lucene.Net.Store.Directory _luceneDirectory;
+        private readonly DirectoryInfo _workingFolder;
 
         public IndexingTests()
         {

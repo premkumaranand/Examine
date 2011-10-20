@@ -51,7 +51,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns></returns>
         public ISearchCriteria Compile()
         {
-            if (!string.IsNullOrEmpty(this._search.SearchIndexType))
+            if (!string.IsNullOrEmpty(this._search.SearchCategory))
             {
                 var query = this._search.Query;
 
@@ -60,7 +60,7 @@ namespace Examine.LuceneEngine.SearchCriteria
 
                 //this.search.query.Add(this.search.queryParser.Parse("(" + query.ToString() + ")"), BooleanClause.Occur.MUST);
 
-                this._search.FieldInternal(LuceneIndexer.IndexCategoryFieldName, _search.SearchIndexType.Escape(), BooleanClause.Occur.MUST);
+                this._search.FieldInternal(this._search.IndexCategoryFieldName, _search.SearchCategory.Escape(), BooleanClause.Occur.MUST);
             }
             
             return this._search;

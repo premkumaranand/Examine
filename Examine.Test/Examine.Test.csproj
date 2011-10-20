@@ -68,6 +68,7 @@
     </Compile>
     <Compile Include="Index\IndexingTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Search\FluentApiTests.cs" />
     <Compile Include="SerializableDictionaryTest.cs" />
     <Compile Include="TestHelper.cs" />
   </ItemGroup>
@@ -78,15 +79,6 @@
     <Content Include="App_Data\StringTheory.pdf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="App_Data\634358726427131398-SHANDEMVAIO-6093.add">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="App_Data\634358726477264266-SHANDEMVAIO-6924.add">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="App_Data\634358726506655947-SHANDEMVAIO-7392.add">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="App_Data\PDFStandards.PDF">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -122,8 +114,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="DataServices\" />
-    <Folder Include="Search\" />
     <Folder Include="Stubs\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -1,18 +1,20 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Examine.LuceneEngine.SearchCriteria;
 using Examine.SearchCriteria;
 using Lucene.Net.Analysis.Standard;
+using Lucene.Net.Store;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using UmbracoExamine;
 using Lucene.Net.Search;
 using Lucene.Net.Index;
 using System.Diagnostics;
 using Examine.LuceneEngine;
 using Examine.LuceneEngine.Providers;
 using System.Threading;
-using Examine.Test.DataServices;
+using Directory = System.IO.Directory;
 
 namespace Examine.Test.Search
 {
@@ -20,15 +22,61 @@ namespace Examine.Test.Search
     public class FluentApiTests
     {
 
+        private readonly Lucene.Net.Store.Directory _luceneDirectory;
+        private readonly DirectoryInfo _workingFolder;
+
+        public FluentApiTests()
+        {
+            _workingFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, "Examine", Guid.NewGuid().ToString()));
+            _workingFolder.Create();
+
+            //clear out old folders
+            var parentFolder = _workingFolder.Parent;
+            foreach (var f in parentFolder.GetDirectories())
+            {
+                try
+                {
+                    Directory.Delete(f.FullName, true);
+                }
+                catch (IOException)
+                {
+                    //ignore
+                }
+            }
+
+            var assemblyFolder = new DirectoryInfo(TestHelper.AssemblyDirectory);
+            var testIndexFolder = assemblyFolder.Parent.Parent.GetDirectories("App_Data").First().GetDirectories("TemplateIndex").First();
+            _luceneDirectory = new RAMDirectory(new SimpleFSDirectory(testIndexFolder));
+        }
+
+        private LuceneSearcher GetSearcher()
+        {
+            var searcher = new LuceneSearcher(new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29), _luceneDirectory);
+            return searcher;
+        }
+      
+        private LuceneIndexer GetIndexer()
+        {
+            var indexer = new LuceneIndexer(
+                _workingFolder,
+                new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
+                SynchronizationType.SingleThreaded,
+                _luceneDirectory);
+
+            indexer.IndexingError += (s, e) => Assert.Fail(e.Message);
+
+            return indexer;
+        }
 
         [TestMethod]
         public void FluentApi_Search_With_Stop_Words()
         {
-            var criteria = _searcher.CreateSearchCriteria();
+            var searcher = GetSearcher();
+            var criteria = searcher.CreateSearchCriteria();
             var filter = criteria.Field("nodeName", "into")
                 .Or().Field("nodeTypeAlias", "into");
 
-            var results = _searcher.Search(filter.Compile());
+            var results = searcher.Search(filter.Compile());
 
             Assert.AreEqual(0, results.TotalItemCount);
         }
@@ -36,76 +84,51 @@ namespace Examine.Test.Search
         [TestMethod]
         public void FluentApi_Search_Raw_Query()
         {
-            var criteria = _searcher.CreateSearchCriteria(IndexTypes.Content);
-            var filter = criteria.RawQuery("nodeTypeAlias:CWS_Home");
+            var searcher = GetSearcher();
+            var criteria = searcher.CreateSearchCriteria();            
 
-            var results = _searcher.Search(filter);
-
-            Assert.IsTrue(results.TotalItemCount > 0);
-        }
-
-        [TestMethod]
-        public void FluentApi_Find_By_ParentId()
-        {
-            var criteria = _searcher.CreateSearchCriteria(IndexTypes.Content);
-            var filter = criteria.ParentId(1139);
-
-            var results = _searcher.Search(filter.Compile());
-
-            Assert.AreEqual(2, results.TotalItemCount);
-        }
-
-        [TestMethod]
-        public void FluentApi_Find_By_NodeTypeAlias()
-        {
-            var criteria = _searcher.CreateSearchCriteria(IndexTypes.Content);
-            var filter = criteria.NodeTypeAlias("CWS_Home").Compile();
-
-            var results = _searcher.Search(filter);
+            var filter = criteria.RawQuery("nodeTypeAlias:cws_home");
+            Console.WriteLine(filter.ToString());
+            var results = searcher.Search(filter);
 
             Assert.IsTrue(results.TotalItemCount > 0);
         }
 
         [TestMethod]
-        public void FluentApi_Find_Only_Image_Media()
+        public void FluentApi_Find_By_Field()
         {
+            var searcher = GetSearcher();
+            //var criteria = searcher.CreateSearchCriteria("content");
+            //NOTE: we manually construct this so we can set a custom category field so that it works with our test index
+            var criteria = new LuceneSearchCriteria(
+                "content",
+                searcher.IndexingAnalyzer,
+                searcher.GetSearchFields(),
+                false,
+                BooleanOperation.And,
+                "__IndexType");
 
-            var criteria = _searcher.CreateSearchCriteria(IndexTypes.Media);
-            var filter = criteria.NodeTypeAlias("image").Compile();
-
-            var results = _searcher.Search(filter);
+            var filter = criteria.Field("nodeTypeAlias", "cws_home".Escape()).Compile();
+            Console.WriteLine(filter.ToString());
+            var results = searcher.Search(filter);
 
             Assert.IsTrue(results.TotalItemCount > 0);
-
-        }
-
-        [TestMethod]
-        public void FluentApi_Find_Both_Media_And_Content()
-        {          
-            var criteria = _searcher.CreateSearchCriteria(BooleanOperation.Or);
-            var filter = criteria
-                .Field(UmbracoContentIndexer.IndexTypeFieldName, IndexTypes.Media)
-                .Or()
-                .Field(UmbracoContentIndexer.IndexTypeFieldName, IndexTypes.Content)
-                .Compile();
-
-            var results = _searcher.Search(filter);
-
-            Assert.AreEqual<int>(10, results.Count());
-
         }
 
         [TestMethod]
         public void FluentApi_Sort_Result_By_Single_Field()
         {
-            var sc = _searcher.CreateSearchCriteria(IndexTypes.Content);
+            var searcher = GetSearcher();
+            var sc = searcher.CreateSearchCriteria();
             var sc1 = sc.Field("writerName", "administrator").And().OrderBy("nodeName").Compile();
 
-            sc = _searcher.CreateSearchCriteria(IndexTypes.Content);
+            sc = searcher.CreateSearchCriteria();
             var sc2 = sc.Field("writerName", "administrator").And().OrderByDescending("nodeName").Compile();
 
-            var results1 = _searcher.Search(sc1);
-            var results2 = _searcher.Search(sc2);
+            Console.WriteLine(sc1.ToString());
+            var results1 = searcher.Search(sc1);
+            Console.WriteLine(sc2.ToString());
+            var results2 = searcher.Search(sc2);
 
             Assert.AreNotEqual(results1.First().Id, results2.First().Id);
         }
@@ -113,12 +136,14 @@ namespace Examine.Test.Search
         [TestMethod]
         public void FluentApi_Standard_Results_Sorted_By_Score()
         {
+            var searcher = GetSearcher();
+
             //Arrange
-            var sc = _searcher.CreateSearchCriteria(IndexTypes.Content, SearchCriteria.BooleanOperation.Or);
-            sc = sc.NodeName("umbraco").Or().Field("headerText", "umbraco").Or().Field("bodyText", "umbraco").Compile();
+            var sc = searcher.CreateSearchCriteria(SearchCriteria.BooleanOperation.Or);
+            sc = sc.Field("nodeName", "umbraco").Or().Field("headerText", "umbraco").Or().Field("bodyText", "umbraco").Compile();
 
             //Act
-            var results = _searcher.Search(sc);
+            var results = searcher.Search(sc);
 
             //Assert
             for (int i = 0; i < results.TotalItemCount - 1; i++)
@@ -136,12 +161,14 @@ namespace Examine.Test.Search
         [TestMethod]
         public void FluentApi_Skip_Results_Returns_Different_Results()
         {
+            var searcher = GetSearcher();
+
             //Arrange
-            var sc = _searcher.CreateSearchCriteria(IndexTypes.Content);
+            var sc = searcher.CreateSearchCriteria();
             sc = sc.Field("writerName", "administrator").Compile();
 
             //Act
-            var results = _searcher.Search(sc);
+            var results = searcher.Search(sc);
 
             //Assert
             Assert.AreNotEqual(results.First(), results.Skip(2).First(), "Third result should be different");
@@ -150,13 +177,15 @@ namespace Examine.Test.Search
         [TestMethod]
         public void FluentApiTests_Escaping_Includes_All_Words()
         {
+            var searcher = GetSearcher();
+
             //Arrange
-            var sc = _searcher.CreateSearchCriteria(IndexTypes.Content);
-            var op = sc.NodeName("codegarden 09".Escape());
+            var sc = searcher.CreateSearchCriteria();
+            var op = sc.Field("nodeName", "codegarden 09".Escape());
             sc = op.Compile();
 
             //Act
-            var results = _searcher.Search(sc);
+            var results = searcher.Search(sc);
 
             //Assert
             Assert.IsTrue(results.TotalItemCount > 0);
@@ -165,8 +194,10 @@ namespace Examine.Test.Search
         [TestMethod]
         public void FluentApiTests_Grouped_And_Examiness()
         {
+            var searcher = GetSearcher();
+
             ////Arrange
-            var criteria = _searcher.CreateSearchCriteria(IndexTypes.Content);
+            var criteria = searcher.CreateSearchCriteria();
 
             //get all node type aliases starting with CWS and all nodees starting with "A"
             var filter = criteria.GroupedAnd(
@@ -176,7 +207,7 @@ namespace Examine.Test.Search
 
 
             ////Act
-            var results = _searcher.Search(filter);
+            var results = searcher.Search(filter);
 
             ////Assert
             Assert.IsTrue(results.TotalItemCount > 0);
@@ -185,14 +216,16 @@ namespace Examine.Test.Search
         [TestMethod]
         public void FluentApiTests_Examiness_Proximity()
         {
+            var searcher = GetSearcher();
+
             ////Arrange
-            var criteria = _searcher.CreateSearchCriteria(IndexTypes.Content);
+            var criteria = searcher.CreateSearchCriteria();
 
             //get all nodes that contain the words warren and creative within 5 words of each other
             var filter = criteria.Field("metaKeywords", "Warren creative".Proximity(5)).Compile();
 
             ////Act
-            var results = _searcher.Search(filter);
+            var results = searcher.Search(filter);
 
             ////Assert
             Assert.IsTrue(results.TotalItemCount > 0);
@@ -201,8 +234,10 @@ namespace Examine.Test.Search
         [TestMethod]
         public void FluentApiTests_Grouped_Or_Examiness()
         {
+            var searcher = GetSearcher();
+          
             ////Arrange
-            var criteria = _searcher.CreateSearchCriteria(IndexTypes.Content);
+            var criteria = searcher.CreateSearchCriteria();
 
             //get all node type aliases starting with CWS_Home OR and all nodees starting with "About"
             var filter = criteria.GroupedOr(
@@ -212,51 +247,11 @@ namespace Examine.Test.Search
 
 
             ////Act
-            var results = _searcher.Search(filter);
+            var results = searcher.Search(filter);
 
             ////Assert
             Assert.IsTrue(results.TotalItemCount > 0);
         }
 
-        [TestMethod]
-        public void FluentApiTests_Cws_TextPage_OrderedByNodeName()
-        {
-            var criteria = _searcher.CreateSearchCriteria(IndexTypes.Content);
-            IBooleanOperation query = criteria.NodeTypeAlias("cws_textpage");
-            query = query.And().OrderBy("nodeName");
-            var sCriteria = query.Compile();
-            Console.WriteLine(sCriteria.ToString());
-            var results = _searcher.Search(sCriteria);
-
-            criteria = _searcher.CreateSearchCriteria(IndexTypes.Content);
-            IBooleanOperation query2 = criteria.NodeTypeAlias("cws_textpage");
-            query2 = query2.And().OrderByDescending("nodeName");
-            var sCriteria2 = query2.Compile();
-            Console.WriteLine(sCriteria2.ToString());
-            var results2 = _searcher.Search(sCriteria2);
-
-            Assert.AreNotEqual(results.First().Id, results2.First().Id);
-
-        }
-
-        private static ISearcher _searcher;
-        private static IIndexer _indexer;
-
-        #region Initialize and Cleanup
-
-        
-
-        [ClassInitialize()]
-        public static void Initialize(TestContext context)
-        {
-            var newIndexFolder = new DirectoryInfo(Path.Combine("App_Data\\CWSIndexSetTest", Guid.NewGuid().ToString()));
-            _indexer = IndexInitializer.GetUmbracoIndexer(newIndexFolder);
-            _indexer.RebuildIndex();
-            _searcher = IndexInitializer.GetUmbracoSearcher(newIndexFolder);
-        }
-
-        
-
-        #endregion
     }
 }

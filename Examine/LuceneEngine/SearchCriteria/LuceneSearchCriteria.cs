@@ -25,13 +25,14 @@ namespace Examine.LuceneEngine.SearchCriteria
         private readonly BooleanClause.Occur _occurance;
         private readonly Lucene.Net.Util.Version _luceneVersion = Lucene.Net.Util.Version.LUCENE_29;
 
-        internal LuceneSearchCriteria(string category, Analyzer analyzer, string[] fields, bool allowLeadingWildcards, BooleanOperation occurance)
+        internal LuceneSearchCriteria(string category, Analyzer analyzer, string[] fields, bool allowLeadingWildcards, BooleanOperation occurance, string indexCategoryFieldName = LuceneIndexer.IndexCategoryFieldName)
         {
             Enforcer.ArgumentNotNull(fields, "fields");
 
-            SearchIndexType = category;
+            SearchCategory = category;
             Query = new BooleanQuery();
             this.BooleanOperation = occurance;
+            IndexCategoryFieldName = indexCategoryFieldName;
             this.QueryParser = new MultiFieldQueryParser(_luceneVersion, fields, analyzer);
             this.QueryParser.SetAllowLeadingWildcard(allowLeadingWildcards);
             this._occurance = occurance.ToLuceneOccurance();
@@ -48,6 +49,11 @@ namespace Examine.LuceneEngine.SearchCriteria
         }
 
         /// <summary>
+        /// The category field name used when compiling the query
+        /// </summary>
+        public string IndexCategoryFieldName { get; protected set; }
+
+        /// <summary>
         /// Returns a <see cref="System.String"/> that represents this instance.
         /// </summary>
         /// <returns>
@@ -55,12 +61,12 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// </returns>
         public override string ToString()
         {
-            return string.Format("{{ SearchIndexType: {0}, LuceneQuery: {1} }}", this.SearchIndexType, this.Query.ToString());
+            return string.Format("{{ SearchCategory: {0}, LuceneQuery: {1} }}", this.SearchCategory, this.Query.ToString());
         }
 
         #region ISearchCriteria Members
 
-        public string SearchIndexType
+        public string SearchCategory
         {
             get;
             protected set;
@@ -658,5 +664,25 @@ namespace Examine.LuceneEngine.SearchCriteria
         }
 
         #endregion
+
+        public IQuery And()
+        {
+            return new LuceneQuery(this, BooleanClause.Occur.MUST);
+        }
+
+        public IQuery Or()
+        {
+            return new LuceneQuery(this, BooleanClause.Occur.SHOULD);
+        }
+
+        public IQuery Not()
+        {
+            return new LuceneQuery(this, BooleanClause.Occur.MUST_NOT);
+        }
+
+        public ISearchCriteria Compile()
+        {
+            return this;
+        }
     }
 }
