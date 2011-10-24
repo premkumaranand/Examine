@@ -261,28 +261,6 @@ namespace Examine.LuceneEngine.Providers
 
         #endregion
 
-        #region Static Helpers
-        /// <summary>
-        /// Returns an index operation to remove the item by id
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public static IndexOperation CreateDeleteItemOperation(string id)
-        {
-            var operation = new IndexOperation
-            {
-                Item = new IndexItem
-                {
-                    Fields = new Dictionary<string, ItemField> { { IndexNodeIdFieldName, new ItemField(id) } },
-                    Id = id,
-                    ItemCategory = string.Empty
-                },
-                Operation = IndexOperationType.Delete
-            };
-            return operation;
-        }
-        #endregion
-
         #region Constants & Fields
 
         /// <summary>
@@ -487,8 +465,7 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Reindexes an item
         /// </summary>
-        /// <param name="items">XML node to reindex</param>
-        /// <param name="category">Type of index to use</param>
+        /// <param name="items">XML node to reindex</param>       
         public override void PerformIndexing(params IndexOperation[] items)
         {
             //check if the index doesn't exist, and if so, create it and reindex everything, this will obviously index this
@@ -505,15 +482,7 @@ namespace Examine.LuceneEngine.Providers
                 switch (i.Operation)
                 {
                     case IndexOperationType.Add:
-                        //check if it is already in our index
-                        var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(i.Item.Id).Compile());
-                        if (idResult.Any())
-                        {
-                            //TODO: We should add an 'Update' instead of deleting first, would be much faster
-                            //first add a delete queue for this item
-                            buffer.Add(CreateDeleteItemOperation(i.Item.Id));
-                        }
-                        //now check if it is already in our queue, in which case we want to ignore 
+                        //check if it is already in our queue, in which case we want to ignore 
                         //the previous ones.
                         buffer.RemoveAll(x => x.Item.Id == i.Item.Id && x.Operation == IndexOperationType.Add);
 
