@@ -261,6 +261,28 @@ namespace Examine.LuceneEngine.Providers
 
         #endregion
 
+        #region Static Helpers
+        /// <summary>
+        /// Returns an index operation to remove the item by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public static IndexOperation CreateDeleteItemOperation(string id)
+        {
+            var operation = new IndexOperation
+            {
+                Item = new IndexItem
+                {
+                    Fields = new Dictionary<string, ItemField> { { IndexNodeIdFieldName, new ItemField(id) } },
+                    Id = id,
+                    ItemCategory = string.Empty
+                },
+                Operation = IndexOperationType.Delete
+            };
+            return operation;
+        }
+        #endregion
+
         #region Constants & Fields
 
         /// <summary>
@@ -482,7 +504,15 @@ namespace Examine.LuceneEngine.Providers
                 switch (i.Operation)
                 {
                     case IndexOperationType.Add:
-                        //check if it is already in our queue, in which case we want to ignore 
+                        //check if it is already in our index
+                        var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(i.Item.Id).Compile());
+                        if (idResult.Any())
+                        {
+                            //TODO: We should add an 'Update' instead of deleting first, would be much faster
+                            //first add a delete queue for this item
+                            buffer.Add(CreateDeleteItemOperation(i.Item.Id));
+                        }
+                        //now check if it is already in our queue, in which case we want to ignore 
                         //the previous ones.
                         buffer.RemoveAll(x => x.Item.Id == i.Item.Id && x.Operation == IndexOperationType.Add);
 
@@ -642,8 +672,7 @@ namespace Examine.LuceneEngine.Providers
                     return true;
 
                 iw.DeleteDocuments(indexTerm);
-                iw.Commit(); //commit the changes!
-
+                
                 OnIndexDeleted(new DeleteIndexEventArgs(new KeyValuePair<string, string>(indexTerm.Field(), indexTerm.Text())));
                 return true;
             }
@@ -1026,6 +1055,7 @@ namespace Examine.LuceneEngine.Providers
                             }
 
                             inMemoryWriter.Commit(); //commit changes!
+                            realWriter.Commit(); //commit the changes (this will process the deletes)
 
                             //merge the index into the 'real' one
                             realWriter.AddIndexesNoOptimize(new[] { inMemoryWriter.GetDirectory() });
