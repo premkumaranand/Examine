@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
@@ -95,7 +96,7 @@ namespace Examine.Test.Index
         }
 
         [TestMethod]
-        public void Indexing_Deduplicates()
+        public void Indexing_No_Duplicates_Async()
         {
             //arrange
 
@@ -126,9 +127,48 @@ namespace Examine.Test.Index
 
             while (totalCount < 102)
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(100);
+                Debug.WriteLine("WAITING FOR COMPLETION...");
             }
 
+
+            //assert
+
+            var searcher = GetSearcher();
+            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test").Compile());
+
+            Assert.AreEqual(1, results.TotalItemCount);
+        }
+
+        [TestMethod]
+        public void Indexing_No_Duplicates_Single_Threaded()
+        {
+            //arrange
+
+            var indexer = GetIndexer();
+            var totalCount = 0;
+            indexer.NodesIndexed += (source, args) =>
+            {
+                totalCount += args.Nodes.Count();
+            };
+
+            //act
+
+            //this will index enough times to optimize ... though there shouldn't be duplicates anyways
+            for (var i = 0; i < 102; i++)
+            {
+                var op = new IndexOperation
+                {
+                    Item = new IndexItem
+                    {
+                        Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("value" + i) } },
+                        Id = "test",
+                        ItemCategory = "TestCategory"
+                    },
+                    Operation = IndexOperationType.Add
+                };
+                indexer.PerformIndexing(op);
+            }
 
             //assert
 

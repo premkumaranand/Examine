@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -261,27 +262,27 @@ namespace Examine.LuceneEngine.Providers
 
         #endregion
 
-        #region Static Helpers
-        /// <summary>
-        /// Returns an index operation to remove the item by id
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public static IndexOperation CreateDeleteItemOperation(string id)
-        {
-            var operation = new IndexOperation
-            {
-                Item = new IndexItem
-                {
-                    Fields = new Dictionary<string, ItemField> { { IndexNodeIdFieldName, new ItemField(id) } },
-                    Id = id,
-                    ItemCategory = string.Empty
-                },
-                Operation = IndexOperationType.Delete
-            };
-            return operation;
-        }
-        #endregion
+        //#region Static Helpers
+        ///// <summary>
+        ///// Returns an index operation to remove the item by id
+        ///// </summary>
+        ///// <param name="id"></param>
+        ///// <returns></returns>
+        //public static IndexOperation CreateDeleteItemOperation(string id)
+        //{
+        //    var operation = new IndexOperation
+        //    {
+        //        Item = new IndexItem
+        //        {
+        //            Fields = new Dictionary<string, ItemField> { { IndexNodeIdFieldName, new ItemField(id) } },
+        //            Id = id,
+        //            ItemCategory = string.Empty
+        //        },
+        //        Operation = IndexOperationType.Delete
+        //    };
+        //    return operation;
+        //}
+        //#endregion
 
         #region Constants & Fields
 
@@ -503,20 +504,12 @@ namespace Examine.LuceneEngine.Providers
             {
                 switch (i.Operation)
                 {
-                    case IndexOperationType.Add:
-                        //check if it is already in our index
-                        var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(i.Item.Id).Compile());
-                        if (idResult.Any())
-                        {
-                            //TODO: We should add an 'Update' instead of deleting first, would be much faster
-                            //first add a delete queue for this item
-                            buffer.Add(CreateDeleteItemOperation(i.Item.Id));
-                        }
+                    case IndexOperationType.Add:                        
                         //now check if it is already in our queue, in which case we want to ignore 
                         //the previous ones.
-                        buffer.RemoveAll(x => x.Item.Id == i.Item.Id && x.Operation == IndexOperationType.Add);
+                        buffer.RemoveAll(x => x.Item.Id == i.Item.Id && x.Operation == i.Operation);
 
-                        //ensure the special fields are added to the dictionary to be saved to file
+                        //ensure the special fields are added to the dictionary
                         EnsureSpecialFields(i.Item);
                         buffer.Add(i);
                         break;
@@ -909,6 +902,8 @@ namespace Examine.LuceneEngine.Providers
             if (docArgs.Cancel)
                 return;
 
+            //writer.DeleteDocuments(new Term(IndexNodeIdFieldName, item.Id));
+            //writer.AddDocument(d);
             writer.UpdateDocument(new Term(IndexNodeIdFieldName, item.Id), d);
 
             OnNodeIndexed(new IndexedNodeEventArgs(item));
@@ -1023,6 +1018,8 @@ namespace Examine.LuceneEngine.Providers
                         IndexWriter inMemoryWriter = null;
                         IndexWriter realWriter = null;
 
+                        Debug.WriteLine("Examine: Processing queue (task id: " + (_asyncTask == null ? 0 : _asyncTask.Id) + ")");
+
                         //track all of the nodes indexed
                         var indexedNodes = new ConcurrentBag<IndexItem>();
 
@@ -1038,12 +1035,19 @@ namespace Examine.LuceneEngine.Providers
                             IndexOperation item;
                             while (buffer.TryDequeue(out item))
                             {
-                                Console.WriteLine("Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
+                                Debug.WriteLine("Examine: Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
 
                                 switch (item.Operation)
                                 {
-                                    case IndexOperationType.Add:
-                                        ProcessAddQueueItem(item.Item, inMemoryWriter);
+                                    case IndexOperationType.Add:                                        
+                                        //check if it is already in our index
+                                        var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(item.Item.Id).Compile());
+                                        //if one is found, then delete it from the main index before the fast index is merged in
+                                        if (idResult.Any())
+                                        {
+                                            ProcessDeleteQueueItem(item.Item, realWriter);
+                                        }                                        
+                                        ProcessAddQueueItem(item.Item, inMemoryWriter);                                            
                                         indexedNodes.Add(item.Item);
                                         break;
                                     case IndexOperationType.Delete:
@@ -1075,6 +1079,8 @@ namespace Examine.LuceneEngine.Providers
 
                             _isIndexing = false;
                         }
+
+                        Debug.WriteLine("Examine: Finished processing queue (task id: " + (_asyncTask == null ? 0 :  _asyncTask.Id) + ") Nodes indexed = " + indexedNodes.Count);
 
                         return indexedNodes.Count;
                     }
@@ -1203,7 +1209,8 @@ namespace Examine.LuceneEngine.Providers
             //don't run the worker if it's currently running since it will just pick up the rest of the queue during its normal operation
             if (!_isIndexing && (_asyncTask == null || _asyncTask.IsCompleted))
             {
-                _asyncTask = Task.Factory.StartNew(WorkerThreadDoWork);
+                Debug.WriteLine("Examine: Running async Task");
+                _asyncTask = Task.Factory.StartNew(WorkerThreadDoWork, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
             }
 
         }

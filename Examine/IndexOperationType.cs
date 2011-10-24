@@ -6,6 +6,6 @@
     public enum IndexOperationType
     {
         Add,
-        Delete
+        Delete        
     }
 }
