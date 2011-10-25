@@ -95,22 +95,9 @@ namespace Examine.Test.Index
 
         }
 
-        [TestMethod]
-        public void Indexing_No_Duplicates_Async()
+        private void _Indexing_Same_Item_No_Duplicates_Multithreaded_Async(IIndexer indexer)
         {
-            //arrange
-
-            var indexer = GetAsyncIndexer();
-            var totalCount = 0;
-            indexer.NodesIndexed += (source, args) =>
-            {
-                totalCount += args.Nodes.Count();
-            };
-
-            //act
-
-            //this will index enough times to optimize ... though there shouldn't be duplicates anyways
-            for(var i = 0;i<102;i++)
+            for (var i = 0; i < 102; i++)
             {
                 var op = new IndexOperation
                 {
@@ -124,13 +111,36 @@ namespace Examine.Test.Index
                 };
                 indexer.PerformIndexing(op);
             }
+        }
 
-            while (totalCount < 102)
+        [TestMethod]
+        public void Indexing_Same_Item_No_Duplicates_Multithreaded_Async()
+        {
+            //arrange
+
+            var indexer = GetAsyncIndexer();
+            var totalCount = 0;
+            indexer.NodesIndexed += (source, args) =>
             {
-                Thread.Sleep(100);
+                totalCount += args.Nodes.Count();
+            };
+
+            //act
+
+            Action doIndex = () => _Indexing_Same_Item_No_Duplicates_Multithreaded_Async(indexer);
+            var t1 = new Thread(doIndex.Invoke);
+            var t2 = new Thread(doIndex.Invoke);
+            var t3 = new Thread(doIndex.Invoke);
+            var t4 = new Thread(doIndex.Invoke);
+            t1.Start();
+            t2.Start();
+            t3.Start();
+            t4.Start();
+            while (t1.IsAlive || t2.IsAlive || t3.IsAlive || t4.IsAlive || totalCount < 102)
+            {
+                Thread.Sleep(500);
                 Debug.WriteLine("WAITING FOR COMPLETION...");
             }
-
 
             //assert
 
@@ -141,7 +151,7 @@ namespace Examine.Test.Index
         }
 
         [TestMethod]
-        public void Indexing_No_Duplicates_Single_Threaded()
+        public void Indexing_Same_Item_No_Duplicates_Single_Threaded()
         {
             //arrange
 
@@ -266,8 +276,26 @@ namespace Examine.Test.Index
             Assert.AreEqual("TestCategory", results.First().Fields[LuceneIndexer.IndexCategoryFieldName]);
         }
 
+        private void _Indexing_Multiple_Items_Individually_No_Duplicates_Multi_Threaded(IIndexer indexer, int seed)
+        {
+            for (var i = seed; i < 20 + seed; i++)
+            {
+                indexer.PerformIndexing(new IndexOperation
+                {
+                    Item = new IndexItem
+                    {
+                        Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("hello world " + i) } },
+                        Id = "test" + i,
+                        ItemCategory = "TestCategory"
+                    },
+                    Operation = IndexOperationType.Add
+                });
+            }
+            
+        }
+
         [TestMethod]
-        public void Indexing_Background_Worker_Indexes_Many_Individually()
+        public void Indexing_Multiple_Items_Individually_No_Duplicates_Multi_Threaded()
         {
             //get an async indexer
 
@@ -278,23 +306,23 @@ namespace Examine.Test.Index
                     totalCount += args.Nodes.Count();
                 };
 
-            for (var i = 0; i < 20; i++)
-            {
-                indexer.PerformIndexing(new IndexOperation
-                    {
-                        Item = new IndexItem
-                            {
-                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world " + i)}},
-                                Id = "test" + i,
-                                ItemCategory = "TestCategory"
-                            },
-                        Operation = IndexOperationType.Add
-                    });
-            }
 
-            while (totalCount < 20)
+            Action doIndex1 = () => _Indexing_Multiple_Items_Individually_No_Duplicates_Multi_Threaded(indexer, 0);
+            Action doIndex2 = () => _Indexing_Multiple_Items_Individually_No_Duplicates_Multi_Threaded(indexer, 20);
+            Action doIndex3 = () => _Indexing_Multiple_Items_Individually_No_Duplicates_Multi_Threaded(indexer, 40);
+            Action doIndex4 = () => _Indexing_Multiple_Items_Individually_No_Duplicates_Multi_Threaded(indexer, 60);
+            var t1 = new Thread(doIndex1.Invoke);
+            var t2 = new Thread(doIndex2.Invoke);
+            var t3 = new Thread(doIndex3.Invoke);
+            var t4 = new Thread(doIndex4.Invoke);
+            t1.Start();
+            t2.Start();
+            t3.Start();
+            t4.Start();
+            while (t1.IsAlive || t2.IsAlive || t3.IsAlive || t4.IsAlive || totalCount < 80)
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(500);
+                Debug.WriteLine("WAITING FOR COMPLETION...");
             }
 
             //assert
@@ -302,11 +330,31 @@ namespace Examine.Test.Index
             var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
 
-            Assert.AreEqual(20, results.Count());
+            Assert.AreEqual(80, results.Count());
+        }
+
+        private void _Indexing_Multiple_Items_At_Once_No_Duplicates_Multi_Threaded(IIndexer indexer, int seed)
+        {
+            var toIndex = new List<IndexOperation>();
+            for (var i = seed; i < 20 + seed; i++)
+            {
+                toIndex.Add(new IndexOperation
+                {
+                    Item = new IndexItem
+                    {
+                        Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("hello world " + i) } },
+                        Id = "test" + i,
+                        ItemCategory = "TestCategory"
+                    },
+                    Operation = IndexOperationType.Add
+                });
+            }
+            //add them all at once
+            indexer.PerformIndexing(toIndex.ToArray());
         }
 
         [TestMethod]
-        public void Indexing_Background_Worker_Indexes_Many_At_Once()
+        public void Indexing_Multiple_Items_At_Once_No_Duplicates_Multi_Threaded()
         {
             //Arrange
 
@@ -318,30 +366,22 @@ namespace Examine.Test.Index
                 totalCount += args.Nodes.Count();
             };
 
-            var toIndex = new List<IndexOperation>();
-
-            for (var i = 0; i < 20; i++)
+            Action doIndex1 = () => _Indexing_Multiple_Items_At_Once_No_Duplicates_Multi_Threaded(indexer, 0);
+            Action doIndex2 = () => _Indexing_Multiple_Items_At_Once_No_Duplicates_Multi_Threaded(indexer, 20);
+            Action doIndex3 = () => _Indexing_Multiple_Items_At_Once_No_Duplicates_Multi_Threaded(indexer, 40);
+            Action doIndex4 = () => _Indexing_Multiple_Items_At_Once_No_Duplicates_Multi_Threaded(indexer, 60);
+            var t1 = new Thread(doIndex1.Invoke);
+            var t2 = new Thread(doIndex2.Invoke);
+            var t3 = new Thread(doIndex3.Invoke);
+            var t4 = new Thread(doIndex4.Invoke);
+            t1.Start();
+            t2.Start();
+            t3.Start();
+            t4.Start();
+            while (t1.IsAlive || t2.IsAlive || t3.IsAlive || t4.IsAlive || totalCount < 80)
             {
-                toIndex.Add(new IndexOperation
-                    {
-                        Item = new IndexItem
-                            {
-                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world " + i)}},
-                                Id = "test" + i,
-                                ItemCategory = "TestCategory"
-                            },
-                        Operation = IndexOperationType.Add
-                    });
-            }
-
-            //ACT
-
-            //add them all at once
-            indexer.PerformIndexing(toIndex.ToArray());
-
-            while (totalCount < 20)
-            {
-                Thread.Sleep(1000);
+                Thread.Sleep(500);
+                Debug.WriteLine("WAITING FOR COMPLETION...");
             }
 
             //assert
@@ -349,7 +389,7 @@ namespace Examine.Test.Index
             var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
 
-            Assert.AreEqual(20, results.Count());
+            Assert.AreEqual(80, results.Count());
         }
 
         /// <summary>
@@ -426,7 +466,7 @@ namespace Examine.Test.Index
             var indexer = new LuceneIndexer(
                 _workingFolder,
                 new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
-                SynchronizationType.AsyncBackgroundWorker,
+                SynchronizationType.Asynchronous,
                 _luceneDirectory);
             indexer.IndexingError += (s, e) => Assert.Fail(e.Message);
             return indexer;
@@ -437,7 +477,7 @@ namespace Examine.Test.Index
             var indexer = new LuceneIndexer(
                 _workingFolder,
                 new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
-                SynchronizationType.SingleThreaded,
+                SynchronizationType.Synchronized,
                 _luceneDirectory);
 
             indexer.IndexingError += (s, e) => Assert.Fail(e.Message);

@@ -114,8 +114,6 @@
     <Compile Include="LuceneEngine\EmptySearchResults.cs" />
     <Compile Include="LuceneEngine\FieldIndexTypes.cs" />
     <Compile Include="LuceneEngine\FileSystemExtensions.cs" />
-    <Compile Include="LuceneEngine\IndexerExecutive.cs" />
-    <Compile Include="LuceneEngine\IndexerExecutiveAssignedEventArgs.cs" />
     <Compile Include="LuceneEngine\LuceneExtensions.cs" />
     <Compile Include="LuceneEngine\Providers\BaseLuceneSearcher.cs" />
     <Compile Include="LuceneEngine\Providers\LuceneIndexer.cs" />

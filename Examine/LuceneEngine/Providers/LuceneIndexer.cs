@@ -51,7 +51,6 @@ namespace Examine.LuceneEngine.Providers
         /// </remarks>
         public LuceneIndexer(IEnumerable<IndexSet> indexSetConfig)
         {
-            //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
 
             OptimizationCommitThreshold = 100;
             _indexSetConfiguration = indexSetConfig;
@@ -65,7 +64,6 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="synchronizationType"></param>
         public LuceneIndexer(DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType)
         {
-            //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
 
             //set up our folders based on the index path
             WorkingFolder = workingFolder;
@@ -84,7 +82,7 @@ namespace Examine.LuceneEngine.Providers
 
             LuceneDirectory = new SimpleFSDirectory(luceneIndexFolder);
 
-            ReInitialize();
+            CreateIndex();
         }
 
         /// <summary>
@@ -96,7 +94,6 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="luceneDirectory"></param>
         public LuceneIndexer(DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType, Directory luceneDirectory)
         {
-            //_workerThreadDoWorkEventHandler = new ThreadStart(WorkerThreadDoWork);
 
             //set up our folders based on the index path
             WorkingFolder = workingFolder;
@@ -110,7 +107,7 @@ namespace Examine.LuceneEngine.Providers
             SynchronizationType = synchronizationType;
             LuceneDirectory = luceneDirectory;
 
-            ReInitialize();
+            CreateIndex();
         }
 
         #endregion
@@ -248,13 +245,13 @@ namespace Examine.LuceneEngine.Providers
             //create our internal searcher, this is useful for inheritors to be able to search their own indexes inside of their indexer
             InternalSearcher = new LuceneSearcher(IndexingAnalyzer, LuceneDirectory);
 
-            SynchronizationType = SynchronizationType.AsyncBackgroundWorker;
+            SynchronizationType = SynchronizationType.Asynchronous;
             if (config["synchronizationType"] != null)
             {
                 SynchronizationType = (SynchronizationType)Enum.Parse(typeof(SynchronizationType), config["synchronizationType"]);
             }
 
-            ReInitialize();
+            CreateIndex();
 
             CommitCount = 0;
 
@@ -262,27 +259,119 @@ namespace Examine.LuceneEngine.Providers
 
         #endregion
 
-        //#region Static Helpers
-        ///// <summary>
-        ///// Returns an index operation to remove the item by id
-        ///// </summary>
-        ///// <param name="id"></param>
-        ///// <returns></returns>
-        //public static IndexOperation CreateDeleteItemOperation(string id)
-        //{
-        //    var operation = new IndexOperation
-        //    {
-        //        Item = new IndexItem
-        //        {
-        //            Fields = new Dictionary<string, ItemField> { { IndexNodeIdFieldName, new ItemField(id) } },
-        //            Id = id,
-        //            ItemCategory = string.Empty
-        //        },
-        //        Operation = IndexOperationType.Delete
-        //    };
-        //    return operation;
-        //}
-        //#endregion
+        #region Static Helpers
+
+        /// <summary>
+        /// Converts a DateTime to total number of milliseconds for storage in a numeric field
+        /// </summary>
+        /// <param name="t">The t.</param>
+        /// <returns></returns>
+        public static double DateTimeToMilliseconds(DateTime t)
+        {
+            return (t - DateTime.MinValue).TotalMilliseconds;
+        }
+
+        /// <summary>
+        /// Converts a DateTime to total number of seconds for storage in a numeric field
+        /// </summary>
+        /// <param name="t">The t.</param>
+        /// <returns></returns>
+        public static double DateTimeToSeconds(DateTime t)
+        {
+            return (t - DateTime.MinValue).TotalSeconds;
+        }
+
+        /// <summary>
+        /// Converts a DateTime to total number of minutes for storage in a numeric field
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static double DateTimeToMinutes(DateTime t)
+        {
+            return (t - DateTime.MinValue).TotalMinutes;
+        }
+
+        /// <summary>
+        /// Converts a DateTime to total number of hours for storage in a numeric field
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static double DateTimeToHours(DateTime t)
+        {
+            return (t - DateTime.MinValue).TotalHours;
+        }
+
+        /// <summary>
+        /// Converts a DateTime to total number of days for storage in a numeric field
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static double DateTimeToDays(DateTime t)
+        {
+            return (t - DateTime.MinValue).TotalDays;
+        }
+
+        /// <summary>
+        /// Converts a number of milliseconds to a DateTime from DateTime.MinValue
+        /// </summary>
+        /// <param name="milliseconds"></param>
+        /// <returns></returns>
+        public static DateTime DateTimeFromMilliseconds(double milliseconds)
+        {
+            return DateTime.MinValue.AddMilliseconds(milliseconds);
+        }
+
+        /// <summary>
+        /// Converts a number of seconds to a DateTime from DateTime.MinValue
+        /// </summary>
+        /// <param name="seconds"></param>
+        /// <returns></returns>
+        public static DateTime DateTimeFromSeconds(double seconds)
+        {
+            return DateTime.MinValue.AddSeconds(seconds);
+        }
+
+        /// <summary>
+        /// Converts a number of minutes to a DateTime from DateTime.MinValue
+        /// </summary>
+        /// <param name="minutes"></param>
+        /// <returns></returns>
+        public static DateTime DateTimeFromMinutes(double minutes)
+        {
+            return DateTime.MinValue.AddMinutes(minutes);
+        }
+
+        /// <summary>
+        /// Converts a number of hours to a DateTime from DateTime.MinValue
+        /// </summary>
+        /// <param name="hours"></param>
+        /// <returns></returns>
+        public static DateTime DateTimeFromHours(double hours)
+        {
+            return DateTime.MinValue.AddHours(hours);
+        }
+
+        /// <summary>
+        /// Converts a number of days to a DateTime from DateTime.MinValue
+        /// </summary>
+        /// <param name="days"></param>
+        /// <returns></returns>
+        public static DateTime DateTimeFromDays(double days)
+        {
+            return DateTime.MinValue.AddDays(days);
+        }
+
+        /// <summary>
+        /// Returns true if the ItemField DataType is not a string
+        /// </summary>
+        /// <param name="field"></param>
+        /// <returns></returns>
+        public static bool IsNumericFieldType(ItemField field)
+        {
+            return (field.DataType != FieldDataType.String);
+        }
+
+        #endregion
 
         #region Constants & Fields
 
@@ -303,7 +392,7 @@ namespace Examine.LuceneEngine.Providers
         /// The prefix added to a field when it is included in the index for sorting
         /// </summary>
         public const string SortedFieldNamePrefix = SpecialFieldPrefix + "Sort_";
-        
+
         /// <summary>
         /// Used to store a non-tokenized category for the document
         /// </summary>
@@ -313,7 +402,7 @@ namespace Examine.LuceneEngine.Providers
         /// Used to store a non-tokenized type for the document
         /// </summary>
         public const string IndexNodeIdFieldName = SpecialFieldPrefix + "NodeId";
-        
+
         /// <summary>
         /// Used to perform thread locking
         /// </summary>
@@ -328,9 +417,7 @@ namespace Examine.LuceneEngine.Providers
         /// Used for double check locking during an index operation
         /// </summary>
         private volatile bool _isIndexing = false;
-
-        private readonly object _cancelLocker = new object();
-
+        
         private Task _asyncTask;
 
         /// <summary>
@@ -381,14 +468,9 @@ namespace Examine.LuceneEngine.Providers
         public Directory LuceneDirectory { get; protected set; }
 
         /// <summary>
-        /// The base folder that contains the queue and index folder and the indexer executive files
+        /// The base folder that contains the queue and index folder 
         /// </summary>
         public DirectoryInfo WorkingFolder { get; private set; }
-
-        /// <summary>
-        /// The Executive to determine if this is the master indexer
-        /// </summary>
-        protected IndexerExecutive ExecutiveIndex { get; set; }
 
         /// <summary>
         /// The index set name which references an Examine <see cref="IndexSet"/>
@@ -414,11 +496,6 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         public event EventHandler<DocumentWritingEventArgs> DocumentWriting;
 
-        /// <summary>
-        /// An event that is triggered when this machine has been elected as the IndexerExecutive
-        /// </summary>
-        public event EventHandler<IndexerExecutiveAssignedEventArgs> IndexerExecutiveAssigned;
-
         #endregion
 
         #region Event handlers
@@ -434,18 +511,12 @@ namespace Examine.LuceneEngine.Providers
 
 
             var keysToRemove = (from i in e.Item.Fields
-                                where string.IsNullOrEmpty(i.Value.FieldValue)
+                                where i.Value.FieldValue == null || string.IsNullOrEmpty(i.Value.FieldValue.ToString())
                                 select i.Key).ToList();
             foreach (var k in keysToRemove)
             {
                 e.Item.Fields.Remove(k);
             }
-        }
-
-        protected virtual void OnIndexerExecutiveAssigned(IndexerExecutiveAssignedEventArgs e)
-        {
-            if (IndexerExecutiveAssigned != null)
-                IndexerExecutiveAssigned(this, e);
         }
 
         /// <summary>
@@ -456,7 +527,7 @@ namespace Examine.LuceneEngine.Providers
         {
             base.OnIndexingError(e);
 
-            if (SynchronizationType == SynchronizationType.SingleThreaded)
+            if (SynchronizationType == SynchronizationType.Synchronized)
             {
                 throw new Exception("Indexing Error Occurred: " + e.Message, e.InnerException);
             }
@@ -491,20 +562,13 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="items">XML node to reindex</param>       
         public override void PerformIndexing(params IndexOperation[] items)
         {
-            //check if the index doesn't exist, and if so, create it and reindex everything, this will obviously index this
-            //particular node
-            if (!IndexExists())
-            {
-                CreateIndex();
-            }
-
             var buffer = new List<IndexOperation>();
 
             foreach (var i in items)
             {
                 switch (i.Operation)
                 {
-                    case IndexOperationType.Add:                        
+                    case IndexOperationType.Add:
                         //now check if it is already in our queue, in which case we want to ignore 
                         //the previous ones.
                         buffer.RemoveAll(x => x.Item.Id == i.Item.Id && x.Operation == i.Operation);
@@ -536,7 +600,7 @@ namespace Examine.LuceneEngine.Providers
             try
             {
                 //ensure the folder exists
-                ReInitialize();
+                VerifyFolder(WorkingFolder);
 
                 //check if the index exists and it's locked
                 if (IndexExists() && !IndexReady())
@@ -588,58 +652,44 @@ namespace Examine.LuceneEngine.Providers
         /// This wil optimize the index for searching, this gets executed when this class instance is instantiated.
         /// </summary>
         /// <remarks>
-        /// This can be an expensive operation and should only be called when there is no indexing activity, 
+        /// 
+        /// This can be an expensive operation and should only be called when there is no indexing activity.
+        /// 
+        /// This method is NOT threadsafe
+        /// 
         /// </remarks>
         protected void OptimizeIndex()
         {
-            //check if this machine is the executive.
-            if (!ExecutiveIndex.IsExecutiveMachine)
-                return;
-
-            if (!_isIndexing)
+            IndexWriter writer = null;
+            try
             {
-                lock (_indexerLocker)
+                if (!IndexExists())
+                    return;
+
+                //check if the index is ready to be written to.
+                if (!IndexReady())
                 {
-                    if (!_isIndexing)
-                    {
-                        _isIndexing = true;
-
-                        IndexWriter writer = null;
-                        try
-                        {
-                            if (!IndexExists())
-                                return;
-
-                            //check if the index is ready to be written to.
-                            if (!IndexReady())
-                            {
-                                OnIndexingError(new IndexingErrorEventArgs("Cannot optimize index, the index is currently locked", string.Empty, null));
-                                _isIndexing = false;
-                                return;
-                            }
-
-                            OnIndexOptimizing(new EventArgs());
-                            
-                            //open the writer for optization
-                            writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
-
-                            //wait for optimization to complete (true)
-                            writer.Optimize(true);
-
-                            OnIndexOptimized(new EventArgs());
-                        }
-                        catch (Exception ex)
-                        {
-                            OnIndexingError(new IndexingErrorEventArgs("Error optimizing Lucene index", string.Empty, ex));
-                        }
-                        finally
-                        {
-                            CloseWriter(ref writer);
-
-                            _isIndexing = false;
-                        }
-                    }
+                    OnIndexingError(new IndexingErrorEventArgs("Cannot optimize index, the index is currently locked", string.Empty, null));                    
+                    return;
                 }
+
+                OnIndexOptimizing(new EventArgs());
+
+                //open the writer for optization
+                writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, !IndexExists(), IndexWriter.MaxFieldLength.UNLIMITED);
+
+                //wait for optimization to complete (true)
+                writer.Optimize(true);
+
+                OnIndexOptimized(new EventArgs());
+            }
+            catch (Exception ex)
+            {
+                OnIndexingError(new IndexingErrorEventArgs("Error optimizing Lucene index", string.Empty, ex));
+            }
+            finally
+            {
+                CloseWriter(ref writer);                
             }
 
         }
@@ -658,14 +708,12 @@ namespace Examine.LuceneEngine.Providers
 
             try
             {
-                ReInitialize();
-
                 //if the index doesn't exist, then no don't attempt to open it.
                 if (!IndexExists())
                     return true;
 
                 iw.DeleteDocuments(indexTerm);
-                
+
                 OnIndexDeleted(new DeleteIndexEventArgs(new KeyValuePair<string, string>(indexTerm.Field(), indexTerm.Text())));
                 return true;
             }
@@ -739,7 +787,7 @@ namespace Examine.LuceneEngine.Providers
 
             foreach (var f in validFields)
             {
-                var ourPolicyType = GetPolicy(f.Key, item.Fields[IndexCategoryFieldName].FieldValue);
+                var ourPolicyType = GetPolicy(f.Key, item.Fields[IndexCategoryFieldName].FieldValue.ToString());
                 var lucenePolicy = TranslateFieldIndexTypeToLuceneType(ourPolicyType);
 
                 Fieldable field = null;
@@ -769,101 +817,34 @@ namespace Examine.LuceneEngine.Providers
                         field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetLongValue((long)parsedVal);
                         break;
                     case FieldDataType.DateTime:
-                        {
-                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
-                                break;
-
-                            DateTime date = (DateTime)parsedVal;
-                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MILLISECOND);
-                            field = new Field(f.Key,
-                                dateAsString,
-                                Field.Store.YES,
-                                lucenePolicy,
-                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                            );
-
+                        if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
                             break;
-                        }
-                    case FieldDataType.DateYear:
-                        {
-                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
-                                break;
-
-                            DateTime date = (DateTime)parsedVal;
-                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.YEAR);
-                            field = new Field(f.Key,
-                                dateAsString,
-                                Field.Store.YES,
-                                lucenePolicy,
-                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                            );
-
-                            break;
-                        }
-                    case FieldDataType.DateMonth:
-                        {
-                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
-                                break;
-
-                            DateTime date = (DateTime)parsedVal;
-                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MONTH);
-                            field = new Field(f.Key,
-                                dateAsString,
-                                Field.Store.YES,
-                                lucenePolicy,
-                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                            );
-
-                            break;
-                        }
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetDoubleValue(DateTimeToMilliseconds((DateTime)parsedVal));
+                        break;
                     case FieldDataType.DateDay:
-                        {
-                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
-                                break;
-
-                            DateTime date = (DateTime)parsedVal;
-                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.DAY);
-                            field = new Field(f.Key,
-                                dateAsString,
-                                Field.Store.YES,
-                                lucenePolicy,
-                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                            );
+                        if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
                             break;
-                        }
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetDoubleValue(DateTimeToDays((DateTime)parsedVal));
+                        break;
                     case FieldDataType.DateHour:
-                        {
-                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
-                                break;
-
-                            DateTime date = (DateTime)parsedVal;
-                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.HOUR);
-                            field = new Field(f.Key,
-                                dateAsString,
-                                Field.Store.YES,
-                                lucenePolicy,
-                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                            );
+                        if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
                             break;
-                        }
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetDoubleValue(DateTimeToHours((DateTime)parsedVal));
+                        break;
                     case FieldDataType.DateMinute:
-                        {
-                            if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
-                                break;
-
-                            DateTime date = (DateTime)parsedVal;
-                            string dateAsString = DateTools.DateToString(date, DateTools.Resolution.MINUTE);
-                            field = new Field(f.Key,
-                                dateAsString,
-                                Field.Store.YES,
-                                lucenePolicy,
-                                lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
-                            );
+                        if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
                             break;
-                        }
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetDoubleValue(DateTimeToMinutes((DateTime)parsedVal));
+                        break;
+                    case FieldDataType.DateSecond:
+                        if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
+                            break;
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetDoubleValue(DateTimeToSeconds((DateTime)parsedVal));
+                        break;
                     default:
+                        //the default stores the string version of the value
                         field = new Field(f.Key,
-                                f.Value.FieldValue,
+                                f.Value.FieldValue.ToString(),
                                 Field.Store.YES,
                                 lucenePolicy,
                                 lucenePolicy == Field.Index.NO ? Field.TermVector.NO : Field.TermVector.YES
@@ -880,10 +861,12 @@ namespace Examine.LuceneEngine.Providers
                 {
                     d.Add(field);
 
-                    if (f.Value.EnableSorting)
+                    //if the field has sorting enabled and it's not numeric, then add a string sortable non-indexed field.
+                    //numerical fields are 'automatically' sortable.
+                    if (!IsNumericFieldType(f.Value) && f.Value.EnableSorting)
                     {
                         d.Add(new Field(SortedFieldNamePrefix + f.Key,
-                                f.Value.FieldValue,
+                                f.Value.FieldValue.ToString(),
                                 Field.Store.YES,
                                 Field.Index.NOT_ANALYZED,
                                 Field.TermVector.NO
@@ -934,33 +917,38 @@ namespace Examine.LuceneEngine.Providers
 
 
         /// <summary>
-        /// Process all of the queue items. This checks if this machine is the Executive and if it's in a load balanced
-        /// environments. If then acts accordingly: 
-        ///     Not the executive = doesn't index, i
-        ///     In async mode = use file watcher timer
+        /// Process all of the queue items
         /// </summary>
         protected internal void SafelyProcessQueueItems(Queue<IndexOperation> buffer)
         {
-            //if this is not the master indexer, exit
-            if (!ExecutiveIndex.IsExecutiveMachine)
-                return;
+            //re-index everything in the buffer, add everything safely to our threadsafe queue
+            while (buffer.Count > 0)
+            {
+                _asyncQueue.Enqueue(buffer.Dequeue());
+            }
 
-            //if in async mode, then process the queue using the timer
             switch (SynchronizationType)
             {
-                case SynchronizationType.SingleThreaded:
-                    //add the buffer to the queue
-                    var list = new ConcurrentQueue<IndexOperation>(buffer);
-                    ForceProcessQueueItems(list);
-                    //if there are enough commits, then we'll run an optimization
-                    if (CommitCount >= OptimizationCommitThreshold)
-                    {
-                        OptimizeIndex();
-                        CommitCount = 0; //reset the counter
-                    }
+                case SynchronizationType.Synchronized:
+                    StartIndexing();
                     break;
-                case SynchronizationType.AsyncBackgroundWorker:
-                    InitializeBackgroundWorker(buffer);
+                case SynchronizationType.Asynchronous:
+
+                    if (!_isIndexing)
+                    {
+                        //don't run the worker if it's currently running since it will just pick up the rest of the queue during its normal operation                    
+                        lock (_indexerLocker)
+                        {
+                            if (!_isIndexing && (_asyncTask == null || _asyncTask.IsCompleted))
+                            {
+                                Debug.WriteLine("Examine: Launching task");
+                                _asyncTask = Task.Factory.StartNew(StartIndexing, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                            }
+                        }
+                    }
+
+                    
+                                        
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -969,30 +957,20 @@ namespace Examine.LuceneEngine.Providers
         }
 
         /// <summary>
-        /// Loop through all files in the queue item folder and index them.
-        /// Regardless of weather this machine is the executive indexer or not or is in a load balanced environment
-        /// or not, this WILL attempt to process the queue items into the index.
+        /// Loop through all files in the queue item folder and index them.        
         /// </summary>
         /// <returns>
         /// The number of queue items processed
         /// </returns>
         /// <remarks>
-        /// Inheritors should be very carefully using this method, SafelyProcessQueueItems will ensure
-        /// that the correct machine processes the items into the index. SafelyQueueItems calls this method
-        /// if it confirms that this machine is the one to process the queue.
+        /// 
+        /// Inheritors should be very carefully using this method, SafelyProcessQueueItems will ensure threadsafe operation.
+        /// 
+        /// This method is NOT threadsafe
+        /// 
         /// </remarks>
         protected int ForceProcessQueueItems(ConcurrentQueue<IndexOperation> buffer)
         {
-            try
-            {
-                ReInitialize();
-            }
-            catch (IOException ex)
-            {
-                OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, an error occurred verifying index folders", string.Empty, ex));
-                return 0;
-            }
-
             if (!IndexExists())
             {
                 //this shouldn't happen!
@@ -1007,91 +985,74 @@ namespace Examine.LuceneEngine.Providers
                 return 0;
             }
 
-            if (!_isIndexing)
+
+            IndexWriter inMemoryWriter = null;
+            IndexWriter realWriter = null;
+
+            Debug.WriteLine("Examine: Processing queue (thread id: " + Thread.CurrentThread.ManagedThreadId + ")");
+
+            //track all of the nodes indexed
+            var indexedNodes = new ConcurrentBag<IndexItem>();
+
+            try
             {
-                lock (_indexerLocker)
+                inMemoryWriter = GetNewInMemoryWriter();
+                realWriter = GetIndexWriter();
+
+                //iterate through the items in the buffer, they should be in the exact order in which 
+                //they were added so shouldn't need to sort anything
+
+                //we need to iterate like this because our threadsafe list doesn't allow enumeration
+                IndexOperation item;
+                while (buffer.TryDequeue(out item))
                 {
-                    if (!_isIndexing)
+                    Debug.WriteLine("Examine: Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
+
+                    switch (item.Operation)
                     {
-                        _isIndexing = true;
-                        
-                        IndexWriter inMemoryWriter = null;
-                        IndexWriter realWriter = null;
-
-                        Debug.WriteLine("Examine: Processing queue (task id: " + (_asyncTask == null ? 0 : _asyncTask.Id) + ")");
-
-                        //track all of the nodes indexed
-                        var indexedNodes = new ConcurrentBag<IndexItem>();
-
-                        try
-                        {
-                            inMemoryWriter = GetNewInMemoryWriter();
-                            realWriter = GetIndexWriter();
-
-                            //iterate through the items in the buffer, they should be in the exact order in which 
-                            //they were added so shouldn't need to sort anything
-
-                            //we need to iterate like this because our threadsafe list doesn't allow enumeration
-                            IndexOperation item;
-                            while (buffer.TryDequeue(out item))
+                        case IndexOperationType.Add:
+                            //check if it is already in our index
+                            var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(item.Item.Id).Compile());
+                            //if one is found, then delete it from the main index before the fast index is merged in
+                            if (idResult.Any())
                             {
-                                Debug.WriteLine("Examine: Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
-
-                                switch (item.Operation)
-                                {
-                                    case IndexOperationType.Add:                                        
-                                        //check if it is already in our index
-                                        var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(item.Item.Id).Compile());
-                                        //if one is found, then delete it from the main index before the fast index is merged in
-                                        if (idResult.Any())
-                                        {
-                                            ProcessDeleteQueueItem(item.Item, realWriter);
-                                        }                                        
-                                        ProcessAddQueueItem(item.Item, inMemoryWriter);                                            
-                                        indexedNodes.Add(item.Item);
-                                        break;
-                                    case IndexOperationType.Delete:
-                                        ProcessDeleteQueueItem(item.Item, realWriter);
-                                        break;
-                                    default:
-                                        throw new ArgumentOutOfRangeException();
-                                }
+                                ProcessDeleteQueueItem(item.Item, realWriter);
                             }
-
-                            inMemoryWriter.Commit(); //commit changes!
-                            realWriter.Commit(); //commit the changes (this will process the deletes)
-
-                            //merge the index into the 'real' one
-                            realWriter.AddIndexesNoOptimize(new[] { inMemoryWriter.GetDirectory() });
-
-                            //raise the completed event
-                            OnNodesIndexed(new IndexedNodesEventArgs(indexedNodes));
-
-                        }
-                        catch (Exception ex)
-                        {
-                            OnIndexingError(new IndexingErrorEventArgs("Error indexing queue items", string.Empty, ex));
-                        }
-                        finally
-                        {
-                            CloseWriter(ref inMemoryWriter);
-                            CloseWriter(ref realWriter);
-
-                            _isIndexing = false;
-                        }
-
-                        Debug.WriteLine("Examine: Finished processing queue (task id: " + (_asyncTask == null ? 0 :  _asyncTask.Id) + ") Nodes indexed = " + indexedNodes.Count);
-
-                        return indexedNodes.Count;
+                            ProcessAddQueueItem(item.Item, inMemoryWriter);
+                            indexedNodes.Add(item.Item);
+                            break;
+                        case IndexOperationType.Delete:
+                            ProcessDeleteQueueItem(item.Item, realWriter);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                 }
+
+                inMemoryWriter.Commit(); //commit changes!
+                realWriter.Commit(); //commit the changes (this will process the deletes)
+
+                //merge the index into the 'real' one
+                realWriter.AddIndexesNoOptimize(new[] { inMemoryWriter.GetDirectory() });
+
+                //raise the completed event
+                OnNodesIndexed(new IndexedNodesEventArgs(indexedNodes));
+
+            }
+            catch (Exception ex)
+            {
+                OnIndexingError(new IndexingErrorEventArgs("Error indexing queue items", string.Empty, ex));
+            }
+            finally
+            {
+                CloseWriter(ref inMemoryWriter);
+                CloseWriter(ref realWriter);                
             }
 
+            Debug.WriteLine("Examine: Finished processing queue (task id: " + Thread.CurrentThread.ManagedThreadId + ") Nodes indexed = " + indexedNodes.Count);
 
-            //if we get to this point, it means that another thead was beaten to the indexing operation so this thread will skip
-            //this occurence.
-            OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, another indexing operation is currently in progress", string.Empty, null));
-            return 0;
+            return indexedNodes.Count;
+
         }
 
 
@@ -1115,9 +1076,21 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="val"></param>
         /// <param name="parsedVal"></param>
         /// <returns></returns>
-        private static bool TryConvert<T>(string val, out object parsedVal)
+        private static bool TryConvert<T>(object val, out object parsedVal)
             where T : struct
         {
+            if (val == null)
+            {
+                parsedVal = null;
+                return false;
+            }
+
+            if (val is T)
+            {
+                parsedVal = val;
+                return true;
+            }
+
             try
             {
                 var t = typeof(T);
@@ -1147,93 +1120,51 @@ namespace Examine.LuceneEngine.Providers
             var specialFields = GetSpecialFieldsToIndex(fields);
 
             foreach (var s in specialFields)
-            {                
-                d.Add(new Field(s.Key, s.Value.FieldValue, Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS, Field.TermVector.NO));
+            {
+                d.Add(new Field(s.Key, s.Value.FieldValue.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS, Field.TermVector.NO));
             }
         }
 
         /// <summary>
-        /// This makes sure that the folders exist, that the executive indexer is setup and that the index is optimized.
-        /// This is called at app startup when the providers are initialized but called again if folder are missing during a
-        /// an indexing operation.
+        /// Processes the queue and checks if optimization needs to occur at the end
         /// </summary>
-        private void ReInitialize()
+        void StartIndexing()
         {
-            //ensure all of the folders are created at startup   
-            VerifyFolder(WorkingFolder);
-
-            if (ExecutiveIndex == null)
+            if (!_isIndexing)
             {
-                ExecutiveIndex = new IndexerExecutive(WorkingFolder);
-            }
-
-            if (!ExecutiveIndex.IsInitialized())
-            {
-                ExecutiveIndex.Initialize();
-
-                //log some info if executive indexer
-                if (ExecutiveIndex.IsExecutiveMachine)
+                lock (_indexerLocker)
                 {
-                    OnIndexerExecutiveAssigned(new IndexerExecutiveAssignedEventArgs(ExecutiveIndex.ExecutiveIndexerMachineName, ExecutiveIndex.ServerCount));
-                }
-            }
-        }
-
-        private void InitializeBackgroundWorker(Queue<IndexOperation> buffer)
-        {
-
-            //if this is not the master indexer anymore... perhaps another server has taken over somehow...
-            if (!ExecutiveIndex.IsExecutiveMachine)
-            {
-                //this will abort the thread once it's latest processing has stopped.
-                if (!_isCancelling)
-                {
-                    lock (_cancelLocker)
+                    if (!_isIndexing)
                     {
-                        if (!_isCancelling)
+                        Debug.WriteLine("Examine: Start indexing (thread id: " + Thread.CurrentThread.ManagedThreadId + ")");
+                        Debug.Flush();
+
+                        _isIndexing = true;
+
+                        //keep processing until it is complete
+                        var numProcessedItems = 0;
+                        do
                         {
-                            _isCancelling = true;
+                            numProcessedItems = ForceProcessQueueItems(_asyncQueue);
+                        } while (!_isCancelling && numProcessedItems > 0);
+
+                        //if there are enough commits, then we'll run an optimization
+                        if (CommitCount >= OptimizationCommitThreshold)
+                        {
+                            OptimizeIndex();
+                            CommitCount = 0; //reset the counter
                         }
+
+                        //reset the flag
+                        _isIndexing = false;
                     }
                 }
-
-                return;
             }
 
-            //re-index everything in the buffer, add everything safely to our threadsafe queue
-            while (buffer.Count > 0)
-            {
-                _asyncQueue.Enqueue(buffer.Dequeue());
-            }
-
-            //don't run the worker if it's currently running since it will just pick up the rest of the queue during its normal operation
-            if (!_isIndexing && (_asyncTask == null || _asyncTask.IsCompleted))
-            {
-                Debug.WriteLine("Examine: Running async Task");
-                _asyncTask = Task.Factory.StartNew(WorkerThreadDoWork, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
-            }
-
-        }
-
-        /// <summary>
-        /// Uses a background worker thread to do all of the indexing
-        /// </summary>
-        void WorkerThreadDoWork()
-        {
-            //keep processing until it is complete
-            var numProcessedItems = 0;
-            do
-            {
-                numProcessedItems = ForceProcessQueueItems(_asyncQueue);
-            } while (!_isCancelling && numProcessedItems > 0);
-
-            //if there are enough commits, then we'll run an optimization
-            if (CommitCount >= OptimizationCommitThreshold)
-            {
-                OptimizeIndex();
-                CommitCount = 0; //reset the counter
-            }
-
+            ////if we get to this point, it means that another thead was beaten to the indexing operation so this thread will skip
+            ////this occurence.
+            //OnIndexingError(new IndexingErrorEventArgs("Cannot index queue items, another indexing operation is currently in progress", string.Empty, null));
+            //return;
         }
 
         /// <summary>
@@ -1327,16 +1258,7 @@ namespace Examine.LuceneEngine.Providers
 
         protected override void DisposeResources()
         {
-            if (!_isCancelling)
-            {
-                lock (_cancelLocker)
-                {
-                    if (!_isCancelling)
-                    {
-                        _isCancelling = true;
-                    }
-                }
-            }
+            _isCancelling = true;
 
             InternalSearcher.Dispose();
             LuceneDirectory.Close();

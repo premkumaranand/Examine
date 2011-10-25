@@ -8,11 +8,11 @@
         /// <summary>
         /// Processes index queue in the same thread as the application
         /// </summary>
-        SingleThreaded,
+        Synchronized,
 
         /// <summary>
-        /// Processes index queue in a background worker thread
+        /// Processes index queue using a System.Threading.Task
         /// </summary>
-        AsyncBackgroundWorker
+        Asynchronous
     }
 }

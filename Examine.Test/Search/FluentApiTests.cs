@@ -60,7 +60,7 @@ namespace Examine.Test.Search
             var indexer = new LuceneIndexer(
                 _workingFolder,
                 new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
-                SynchronizationType.SingleThreaded,
+                SynchronizationType.Synchronized,
                 _luceneDirectory);
 
             indexer.IndexingError += (s, e) => Assert.Fail(e.Message);
