@@ -7,14 +7,6 @@ namespace Examine.SearchCriteria
     public enum DateResolution
     {
         /// <summary>
-        /// Date is the Year component
-        /// </summary>
-        Year,
-        /// <summary>
-        /// Date is just the Year and Month component
-        /// </summary>
-        Month,
-        /// <summary>
         /// Date is just the Year, Month and Day component
         /// </summary>
         Day,

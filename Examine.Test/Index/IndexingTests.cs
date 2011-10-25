@@ -28,6 +28,82 @@ namespace Examine.Test.Index
         }
 
         [TestMethod]
+        public void Indexing_Date_Value()
+        {
+            //arrange
+
+            var indexer = GetIndexer();
+
+            //act
+
+            indexer.PerformIndexing(
+                new IndexOperation
+                {
+                    Item = new IndexItem
+                    {
+                        Fields = new Dictionary<string, ItemField>
+                                    {
+                                        {
+                                            "Field1", new ItemField(new DateTime(2010, 10, 10, 10, 10, 10))
+                                                {
+                                                    DataType = FieldDataType.DateTime
+                                                }
+                                            }
+                                    },
+                        Id = "test1",
+                        ItemCategory = "TestCategory"
+                    },
+                    Operation = IndexOperationType.Add
+                });
+
+            //assert
+
+            var searcher = GetSearcher();
+            var results = searcher.Search(searcher.CreateSearchCriteria().Range("Field1", new DateTime(2010, 10, 10, 10, 10, 10), new DateTime(2010, 10, 10, 10, 10, 10)).Compile());
+            var results2 = searcher.Search(searcher.CreateSearchCriteria().Range("Field1", new DateTime(2010, 11, 10, 10, 10, 10), new DateTime(2010, 11, 10, 10, 10, 10)).Compile());
+
+            Assert.AreEqual(1, results.Count());
+            Assert.AreEqual(0, results2.Count());
+        }
+
+        [TestMethod]
+        public void Indexing_Numberical_Value()
+        {
+            //arrange
+
+            var indexer = GetIndexer();
+
+            //act
+
+            indexer.PerformIndexing(
+                new IndexOperation
+                    {
+                        Item = new IndexItem
+                            {
+                                Fields = new Dictionary<string, ItemField>
+                                    {
+                                        {
+                                            "Field1", new ItemField(123456)
+                                                {
+                                                    DataType = FieldDataType.Number
+                                                }
+                                            }
+                                    },
+                                Id = "test1",
+                                ItemCategory = "TestCategory"
+                            },
+                        Operation = IndexOperationType.Add
+                    });
+
+            //assert
+
+            var searcher = GetSearcher();
+            var results = searcher.Search(searcher.CreateSearchCriteria().Range("Field1", 123456, 123456).Compile());
+
+            Assert.AreEqual(1, results.Count());
+        }
+
+        [TestMethod]
         public void Indexing_Item_Deletes()
         {
             //arrange
@@ -79,7 +155,7 @@ namespace Examine.Test.Index
                     {
                         Item = new IndexItem
                             {
-                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world")}},
+                                Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("hello world") } },
                                 Id = "test1",
                                 ItemCategory = "TestCategory"
                             },
@@ -230,7 +306,7 @@ namespace Examine.Test.Index
                 {
                     Item = new IndexItem
                         {
-                            Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world")}},
+                            Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("hello world") } },
                             Id = "test1",
                             ItemCategory = "TestCategory"
                         },
@@ -243,7 +319,7 @@ namespace Examine.Test.Index
             var searcher = GetSearcher();
             var results = searcher.Search(searcher.CreateSearchCriteria().Id("test1").Compile());
 
-            Assert.AreEqual(1, results.TotalItemCount);            
+            Assert.AreEqual(1, results.TotalItemCount);
         }
 
         [TestMethod]
@@ -259,7 +335,7 @@ namespace Examine.Test.Index
                 {
                     Item = new IndexItem
                         {
-                            Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world")}},
+                            Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("hello world") } },
                             Id = "test1",
                             ItemCategory = "TestCategory"
                         },
@@ -291,7 +367,7 @@ namespace Examine.Test.Index
                     Operation = IndexOperationType.Add
                 });
             }
-            
+
         }
 
         [TestMethod]
@@ -413,7 +489,7 @@ namespace Examine.Test.Index
                     {
                         Item = new IndexItem
                             {
-                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world " + i)}},
+                                Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("hello world " + i) } },
                                 Id = "test" + i,
                                 ItemCategory = "TestCategory"
                             },
@@ -439,7 +515,7 @@ namespace Examine.Test.Index
                     {
                         Item = new IndexItem
                             {
-                                Fields = new Dictionary<string, ItemField> {{"Field1", new ItemField("hello world " + i)}},
+                                Fields = new Dictionary<string, ItemField> { { "Field1", new ItemField("hello world " + i) } },
                                 Id = "test" + i,
                                 ItemCategory = "TestCategory"
                             },

@@ -306,34 +306,34 @@ namespace Examine.LuceneEngine.SearchCriteria
         public IBooleanOperation Range(string fieldName, DateTime start, DateTime end, bool includeLower, bool includeUpper, DateResolution resolution)
         {
             //By specifying the resolution we can do more accurate range searching on date fields
-            DateTools.Resolution luceneResolution;
+            double startDateConverted;
+            double endDateConverted;
             switch (resolution)
             {
-                case DateResolution.Year:
-                    luceneResolution = DateTools.Resolution.YEAR;
-                    break;
-                case DateResolution.Month:
-                    luceneResolution = DateTools.Resolution.MONTH;
-                    break;
                 case DateResolution.Day:
-                    luceneResolution = DateTools.Resolution.DAY;
+                    startDateConverted = LuceneIndexer.DateTimeToDays(start);
+                    endDateConverted = LuceneIndexer.DateTimeToDays(end);
                     break;
                 case DateResolution.Hour:
-                    luceneResolution = DateTools.Resolution.HOUR;
+                    startDateConverted = LuceneIndexer.DateTimeToHours(start);
+                    endDateConverted = LuceneIndexer.DateTimeToHours(end);
                     break;
                 case DateResolution.Minute:
-                    luceneResolution = DateTools.Resolution.MINUTE;
+                    startDateConverted = LuceneIndexer.DateTimeToMinutes(start);
+                    endDateConverted = LuceneIndexer.DateTimeToMinutes(end);
                     break;
                 case DateResolution.Second:
-                    luceneResolution = DateTools.Resolution.SECOND;
+                    startDateConverted = LuceneIndexer.DateTimeToSeconds(start);
+                    endDateConverted = LuceneIndexer.DateTimeToSeconds(end);
                     break;
                 case DateResolution.Millisecond:
                 default:
-                    luceneResolution = DateTools.Resolution.MILLISECOND;
+                    startDateConverted = LuceneIndexer.DateTimeToMilliseconds(start);
+                    endDateConverted = LuceneIndexer.DateTimeToMilliseconds(end);
                     break;
             }
             //since lucene works on string's for all searching we need to flatten the date
-            return this.RangeInternal(fieldName, DateTools.DateToString(start, luceneResolution), DateTools.DateToString(end, luceneResolution), includeLower, includeUpper, _occurance);
+            return this.RangeInternal(fieldName, startDateConverted, endDateConverted, includeLower, includeUpper, _occurance);
         }
 
         public IBooleanOperation Range(string fieldName, int start, int end)
