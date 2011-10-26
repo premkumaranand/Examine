@@ -58,7 +58,6 @@ namespace Examine.Test.Search
         private LuceneIndexer GetIndexer()
         {
             var indexer = new LuceneIndexer(
-                _workingFolder,
                 new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
                 SynchronizationType.Synchronized,
                 _luceneDirectory);

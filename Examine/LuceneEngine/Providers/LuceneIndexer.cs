@@ -65,10 +65,6 @@ namespace Examine.LuceneEngine.Providers
         public LuceneIndexer(DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType)
         {
 
-            //set up our folders based on the index path
-            WorkingFolder = workingFolder;
-
-
             IndexingAnalyzer = analyzer;
 
             var luceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index"));
@@ -88,15 +84,11 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Constructor to allow for creating an indexer at runtime which allows specifying a custom lucene 'Directory'
         /// </summary>
-        /// <param name="workingFolder"></param>
         /// <param name="analyzer"></param>
         /// <param name="synchronizationType"></param>
         /// <param name="luceneDirectory"></param>
-        public LuceneIndexer(DirectoryInfo workingFolder, Analyzer analyzer, SynchronizationType synchronizationType, Directory luceneDirectory)
+        public LuceneIndexer(Analyzer analyzer, SynchronizationType synchronizationType, Directory luceneDirectory)
         {
-
-            //set up our folders based on the index path
-            WorkingFolder = workingFolder;
 
             IndexingAnalyzer = analyzer;
 
@@ -196,8 +188,6 @@ namespace Examine.LuceneEngine.Providers
 
                         VerifyFolder(set.IndexDirectory);
 
-                        //now set the index folders
-                        WorkingFolder = set.IndexDirectory;
                         luceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
 
                         found = true;
@@ -221,8 +211,6 @@ namespace Examine.LuceneEngine.Providers
 
                 VerifyFolder(set.IndexDirectory);
 
-                //now set the index folders
-                WorkingFolder = set.IndexDirectory;
                 luceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
             }
 
@@ -468,11 +456,6 @@ namespace Examine.LuceneEngine.Providers
         public Directory LuceneDirectory { get; protected set; }
 
         /// <summary>
-        /// The base folder that contains the queue and index folder 
-        /// </summary>
-        public DirectoryInfo WorkingFolder { get; private set; }
-
-        /// <summary>
         /// The index set name which references an Examine <see cref="IndexSet"/>
         /// </summary>
         public string IndexSetName { get; private set; }
@@ -598,9 +581,7 @@ namespace Examine.LuceneEngine.Providers
         {
             IndexWriter writer = null;
             try
-            {
-                //ensure the folder exists
-                VerifyFolder(WorkingFolder);
+            {                
 
                 //check if the index exists and it's locked
                 if (IndexExists() && !IndexReady())

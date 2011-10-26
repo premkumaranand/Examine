@@ -19,11 +19,9 @@ namespace Examine.Test.Index
     public class IndexingTests
     {
         private readonly Lucene.Net.Store.Directory _luceneDirectory;
-        private readonly DirectoryInfo _workingFolder;
 
         public IndexingTests()
         {
-            _workingFolder = new DirectoryInfo(Path.Combine(Environment.CurrentDirectory, Guid.NewGuid().ToString()));
             _luceneDirectory = new RAMDirectory();
         }
 
@@ -64,6 +62,7 @@ namespace Examine.Test.Index
 
             Assert.AreEqual(1, results.Count());
             Assert.AreEqual(0, results2.Count());
+            Assert.AreEqual(new DateTime(2010, 10, 10, 10, 10, 10), LuceneIndexer.DateTimeFromMilliseconds(double.Parse(results.First().Fields["Field1"])));
         }
 
         [TestMethod]
@@ -540,7 +539,6 @@ namespace Examine.Test.Index
         private LuceneIndexer GetAsyncIndexer()
         {
             var indexer = new LuceneIndexer(
-                _workingFolder,
                 new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
                 SynchronizationType.Asynchronous,
                 _luceneDirectory);
@@ -551,7 +549,6 @@ namespace Examine.Test.Index
         private LuceneIndexer GetIndexer()
         {
             var indexer = new LuceneIndexer(
-                _workingFolder,
                 new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_29),
                 SynchronizationType.Synchronized,
                 _luceneDirectory);
