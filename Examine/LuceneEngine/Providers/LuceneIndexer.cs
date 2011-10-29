@@ -67,18 +67,17 @@ namespace Examine.LuceneEngine.Providers
 
             IndexingAnalyzer = analyzer;
 
-            var luceneIndexFolder = new DirectoryInfo(Path.Combine(workingFolder.FullName, "Index"));
-            VerifyFolder(luceneIndexFolder);
+            VerifyFolder(workingFolder);
 
             //create our internal searcher, this is useful for inheritors to be able to search their own indexes inside of their indexer
-            InternalSearcher = new LuceneSearcher(luceneIndexFolder, IndexingAnalyzer);
+            InternalSearcher = new LuceneSearcher(workingFolder, IndexingAnalyzer);
 
             OptimizationCommitThreshold = 100;
             SynchronizationType = synchronizationType;
 
-            LuceneDirectory = new SimpleFSDirectory(luceneIndexFolder);
+            LuceneDirectory = new SimpleFSDirectory(workingFolder);
 
-            CreateIndex();
+            CreateIndex(false);
         }
 
         /// <summary>
@@ -99,7 +98,7 @@ namespace Examine.LuceneEngine.Providers
             SynchronizationType = synchronizationType;
             LuceneDirectory = luceneDirectory;
 
-            CreateIndex();
+            CreateIndex(false);
         }
 
         #endregion
@@ -186,9 +185,7 @@ namespace Examine.LuceneEngine.Providers
                         //we've found an index set by naming conventions :)
                         IndexSetName = set.SetName;
 
-                        VerifyFolder(set.IndexDirectory);
-
-                        luceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
+                        luceneIndexFolder = set.IndexDirectory;
 
                         found = true;
                     }
@@ -209,9 +206,7 @@ namespace Examine.LuceneEngine.Providers
 
                 IndexSetName = config["indexSet"];
 
-                VerifyFolder(set.IndexDirectory);
-
-                luceneIndexFolder = new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index"));
+                luceneIndexFolder = set.IndexDirectory;
             }
 
             if (config["analyzer"] != null)
@@ -239,7 +234,7 @@ namespace Examine.LuceneEngine.Providers
                 SynchronizationType = (SynchronizationType)Enum.Parse(typeof(SynchronizationType), config["synchronizationType"]);
             }
 
-            CreateIndex();
+            CreateIndex(false);
 
             CommitCount = 0;
 
@@ -577,7 +572,7 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Creates a brand new index, this will override any existing index with an empty one
         /// </summary>
-        public void CreateIndex()
+        public void CreateIndex(bool forceOverwrite)
         {
             IndexWriter writer = null;
             try
@@ -590,9 +585,11 @@ namespace Examine.LuceneEngine.Providers
                     return;
                 }
 
-                //create the writer (this will overwrite old index files)
-                writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, true, IndexWriter.MaxFieldLength.UNLIMITED);
-
+                if (!IndexExists() || forceOverwrite)
+                {
+                    //create the writer (this will overwrite old index files)
+                    writer = new IndexWriter(LuceneDirectory, IndexingAnalyzer, true, IndexWriter.MaxFieldLength.UNLIMITED);    
+                }
             }
             catch (Exception ex)
             {
@@ -1015,6 +1012,12 @@ namespace Examine.LuceneEngine.Providers
 
                 //merge the index into the 'real' one
                 realWriter.AddIndexesNoOptimize(new[] { inMemoryWriter.GetDirectory() });
+
+                //this is required to ensure the index is written to during the same thread execution
+                if (SynchronizationType == SynchronizationType.Synchronized)
+                {
+                    realWriter.WaitForMerges();
+                }
 
                 //raise the completed event
                 OnNodesIndexed(new IndexedNodesEventArgs(indexedNodes));

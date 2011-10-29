@@ -108,7 +108,7 @@ namespace Examine.LuceneEngine.Providers
 						found = true;
 
                         //get the folder to index
-					    LuceneDirectory = new SimpleFSDirectory(new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index")));
+					    LuceneDirectory = new SimpleFSDirectory(set.IndexDirectory);
 					}
 				}
 
@@ -124,7 +124,7 @@ namespace Examine.LuceneEngine.Providers
 				_indexSetName = config["indexSet"];
 
 				//get the folder to index
-                LuceneDirectory = new SimpleFSDirectory(new DirectoryInfo(Path.Combine(set.IndexDirectory.FullName, "Index")));
+                LuceneDirectory = new SimpleFSDirectory(set.IndexDirectory);
 			}            		
 		}
 
