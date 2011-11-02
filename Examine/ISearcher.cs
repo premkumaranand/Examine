@@ -29,29 +29,7 @@ namespace Examine
         /// Creates a search criteria instance as required by the implementation
         /// </summary>
         /// <returns></returns>
-        IQuery CreateSearchCriteria();
-
-        /// <summary>
-        /// Creates the search criteria.
-        /// </summary>
-        /// <param name="defaultOperation">The default operation.</param>
-        /// <returns></returns>
-        IQuery CreateSearchCriteria(BooleanOperation defaultOperation);
-
-        /// <summary>
-        /// Creates a search criteria instance as required by the implementation
-        /// </summary>
-        /// <param name="category">The type of index (i.e. Media or Content )</param>
-        IQuery CreateSearchCriteria(string category);
-
-        /// <summary>
-        /// Creates a search criteria instance as required by the implementation
-        /// </summary>
-        /// <param name="category">The type of data in the index.</param>
-        /// <param name="defaultOperation">The default operation.</param>
-        /// <returns>
-        /// An instance of <see cref="Examine.SearchCriteria.IQuery"/>
-        /// </returns>
-        IQuery CreateSearchCriteria(string category, BooleanOperation defaultOperation);
+        IBooleanOperation CreateSearchCriteria();
+        
     }
 }

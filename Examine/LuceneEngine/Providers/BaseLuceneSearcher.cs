@@ -93,17 +93,6 @@ namespace Examine.LuceneEngine.Providers
         public abstract Searcher GetSearcher();
 
         /// <summary>
-        /// Creates an instance of SearchCriteria for the provider
-        /// </summary>
-        /// <param name="category">The type of data in the index.</param>
-        /// <param name="defaultOperation">The default operation.</param>
-        /// <returns>A blank SearchCriteria</returns>
-        public override IQuery CreateSearchCriteria(string category, BooleanOperation defaultOperation)
-        {
-            return new LuceneSearchCriteria(IndexingAnalyzer, GetSearchFields(), EnableLeadingWildcards, defaultOperation);
-        }
-
-        /// <summary>
         /// Simple search method which defaults to searching content nodes
         /// </summary>
         /// <param name="searchText"></param>
@@ -116,14 +105,14 @@ namespace Examine.LuceneEngine.Providers
             if (useWildcards)
             {
                 var wildcardSearch = new ExamineValue(Examineness.ComplexWildcard, searchText.MultipleCharacterWildcard().Value);
-                sc = sc.GroupedOr(GetSearchFields(), wildcardSearch).Compile();
+                sc = sc.Must().GroupedOr(GetSearchFields(), wildcardSearch);
             }
             else
             {
-                sc = sc.GroupedOr(GetSearchFields(), searchText).Compile();
+                sc = sc.Must().GroupedOr(GetSearchFields(), searchText);
             }
 
-            return Search(sc);
+            return Search(sc.Compile());
         }
 
         /// <summary>
@@ -149,25 +138,10 @@ namespace Examine.LuceneEngine.Providers
         /// Creates search criteria that defaults to IndexType.Any and BooleanOperation.And
         /// </summary>
         /// <returns></returns>
-        public override IQuery CreateSearchCriteria()
+        public override IBooleanOperation CreateSearchCriteria()
         {
-            return CreateSearchCriteria(string.Empty, BooleanOperation.And);
+            return new LuceneBooleanOperation(new LuceneSearchCriteria(IndexingAnalyzer, GetSearchFields(), EnableLeadingWildcards));
         }
-
-        /// <summary>
-        /// Creates an instance of SearchCriteria for the provider
-        /// </summary>
-        public override IQuery CreateSearchCriteria(string category)
-        {
-            return CreateSearchCriteria(category, BooleanOperation.And);
-        }
-
-        public override IQuery CreateSearchCriteria(BooleanOperation defaultOperation)
-        {
-            return CreateSearchCriteria(string.Empty, defaultOperation);
-        }
-
-
         
     }
 }

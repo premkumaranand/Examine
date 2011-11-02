@@ -10,12 +10,12 @@ namespace Examine.SearchCriteria
         /// Sets the next operation to be AND
         /// </summary>
         /// <returns></returns>
-        IQuery And();
+        IQuery Must();
         /// <summary>
         /// Sets the next operation to be OR
         /// </summary>
         /// <returns></returns>
-        IQuery Or();
+        IQuery Should();
         /// <summary>
         /// Sets the next operation to be NOT
         /// </summary>

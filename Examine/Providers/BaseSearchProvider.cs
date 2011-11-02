@@ -34,29 +34,7 @@ namespace Examine.Providers
         /// Creates an instance of SearchCriteria for the provider
         /// </summary>
         /// <returns></returns>
-        public abstract IQuery CreateSearchCriteria();
-
-        /// <summary>
-        /// Creates an instance of SearchCriteria for the provider
-        /// </summary>
-        /// <param name="category">The type of data in the index.</param>
-        /// <returns>A blank SearchCriteria</returns>
-        public abstract IQuery CreateSearchCriteria(string category);
-
-        ///<summary>
-        /// Creates an instance of SearchCriteria for the provider
-        ///</summary>
-        ///<param name="defaultOperation"></param>
-        ///<returns></returns>
-        public abstract IQuery CreateSearchCriteria(BooleanOperation defaultOperation);
-
-        /// <summary>
-        /// Creates an instance of SearchCriteria for the provider
-        /// </summary>
-        /// <param name="category">The type of data in the index.</param>
-        /// <param name="defaultOperation">The default operation.</param>
-        /// <returns>A blank SearchCriteria</returns>
-        public abstract IQuery CreateSearchCriteria(string category, BooleanOperation defaultOperation);
+        public abstract IBooleanOperation CreateSearchCriteria();
 
         #endregion
 

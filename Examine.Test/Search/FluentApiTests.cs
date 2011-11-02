@@ -71,8 +71,8 @@ namespace Examine.Test.Search
         public void FluentApi_Join_Search_Criteria_Instances()
         {
             var searcher = GetSearcher();
-            var criteria1 = (LuceneSearchCriteria)searcher.CreateSearchCriteria().Field("nodeTypeAlias", "cws_home".Escape()).Compile();
-            var criteria2 = (LuceneSearchCriteria)searcher.CreateSearchCriteria().Field("writerName", "administrator".Escape()).Compile();
+            var criteria1 = (LuceneSearchCriteria)searcher.CreateSearchCriteria().Must().Field("nodeTypeAlias", "cws_home".Escape()).Compile();
+            var criteria2 = (LuceneSearchCriteria)searcher.CreateSearchCriteria().Must().Field("writerName", "administrator".Escape()).Compile();
 
             var combined = criteria1.Join(criteria2);
 
@@ -86,8 +86,8 @@ namespace Examine.Test.Search
         {
             var searcher = GetSearcher();
             var criteria = searcher.CreateSearchCriteria();
-            var filter = criteria.Field("nodeName", "into")
-                .Or().Field("nodeTypeAlias", "into");
+            var filter = criteria.Must().Field("nodeName", "into")
+                .Should().Field("nodeTypeAlias", "into");
 
             var results = searcher.Search(filter.Compile());
 
@@ -98,9 +98,9 @@ namespace Examine.Test.Search
         public void FluentApi_Search_Raw_Query()
         {
             var searcher = GetSearcher();
-            var criteria = searcher.CreateSearchCriteria();            
+            var criteria = searcher.CreateSearchCriteria();
 
-            var filter = criteria.RawQuery("nodeTypeAlias:cws_home");
+            var filter = criteria.Must().RawQuery("nodeTypeAlias:cws_home");
             Console.WriteLine(filter.ToString());
             var results = searcher.Search(filter.Compile());
 
@@ -115,8 +115,7 @@ namespace Examine.Test.Search
             var criteria = new LuceneSearchCriteria(
                 searcher.IndexingAnalyzer,
                 searcher.GetSearchFields(),
-                false,
-                BooleanOperation.And);
+                false);
 
             var filter = criteria.Field("nodeTypeAlias", "cws_home".Escape()).Compile();
             Console.WriteLine(filter.ToString());
@@ -130,10 +129,10 @@ namespace Examine.Test.Search
         {
             var searcher = GetSearcher();
             var sc = searcher.CreateSearchCriteria();
-            var sc1 = sc.Field("writerName", "administrator").And().OrderBy("nodeName").Compile();
+            var sc1 = sc.Must().Field("writerName", "administrator").Must().OrderBy("nodeName").Compile();
 
             sc = searcher.CreateSearchCriteria();
-            var sc2 = sc.Field("writerName", "administrator").And().OrderByDescending("nodeName").Compile();
+            var sc2 = sc.Must().Field("writerName", "administrator").Must().OrderByDescending("nodeName").Compile();
 
             Console.WriteLine(sc1.ToString());
             var results1 = searcher.Search(sc1);
@@ -149,8 +148,8 @@ namespace Examine.Test.Search
             var searcher = GetSearcher();
 
             //Arrange
-            var sc = searcher.CreateSearchCriteria(SearchCriteria.BooleanOperation.Or);
-            sc = sc.Field("nodeName", "umbraco").Or().Field("headerText", "umbraco").Or().Field("bodyText", "umbraco").Compile();
+            var sc = searcher.CreateSearchCriteria()
+                .Should().Field("nodeName", "umbraco").Should().Field("headerText", "umbraco").Should().Field("bodyText", "umbraco").Compile();
 
             //Act
             var results = searcher.Search(sc);
@@ -174,8 +173,8 @@ namespace Examine.Test.Search
             var searcher = GetSearcher();
 
             //Arrange
-            var sc = searcher.CreateSearchCriteria();
-            sc = sc.Field("writerName", "administrator").Compile();
+            var sc = searcher.CreateSearchCriteria()
+                .Must().Field("writerName", "administrator").Compile();
 
             //Act
             var results = searcher.Search(sc);
@@ -190,9 +189,8 @@ namespace Examine.Test.Search
             var searcher = GetSearcher();
 
             //Arrange
-            var sc = searcher.CreateSearchCriteria();
-            var op = sc.Field("nodeName", "codegarden 09".Escape());
-            sc = op.Compile();
+            var sc = searcher.CreateSearchCriteria()
+                .Must().Field("nodeName", "codegarden 09".Escape()).Compile();           
 
             //Act
             var results = searcher.Search(sc);
@@ -210,7 +208,7 @@ namespace Examine.Test.Search
             var criteria = searcher.CreateSearchCriteria();
 
             //get all node type aliases starting with CWS and all nodees starting with "A"
-            var filter = criteria.GroupedAnd(
+            var filter = criteria.Must().GroupedAnd(
                 new string[] { "nodeTypeAlias", "nodeName" },
                 new IExamineValue[] { "CWS".MultipleCharacterWildcard(), "A".MultipleCharacterWildcard() })
                 .Compile();
@@ -232,7 +230,7 @@ namespace Examine.Test.Search
             var criteria = searcher.CreateSearchCriteria();
 
             //get all nodes that contain the words warren and creative within 5 words of each other
-            var filter = criteria.Field("metaKeywords", "Warren creative".Proximity(5)).Compile();
+            var filter = criteria.Must().Field("metaKeywords", "Warren creative".Proximity(5)).Compile();
 
             ////Act
             var results = searcher.Search(filter);
@@ -250,7 +248,7 @@ namespace Examine.Test.Search
             var criteria = searcher.CreateSearchCriteria();
 
             //get all node type aliases starting with CWS_Home OR and all nodees starting with "About"
-            var filter = criteria.GroupedOr(
+            var filter = criteria.Must().GroupedOr(
                 new[] { "nodeTypeAlias", "nodeName" },
                 new[] { "CWS\\_Home".Boost(10), "About".MultipleCharacterWildcard() })
                 .Compile();

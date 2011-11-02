@@ -164,24 +164,9 @@ namespace Examine
         /// Creates search criteria that defaults to IndexType.Any and BooleanOperation.And
         /// </summary>
         /// <returns></returns>
-        public IQuery CreateSearchCriteria()
+        public IBooleanOperation CreateSearchCriteria()
         {
-            return this.CreateSearchCriteria(string.Empty, BooleanOperation.And);
-        }
-
-        public IQuery CreateSearchCriteria(string category)
-        {
-            return this.CreateSearchCriteria(category, BooleanOperation.And);
-        }
-
-        public IQuery CreateSearchCriteria(BooleanOperation defaultOperation)
-        {
-            return this.CreateSearchCriteria(string.Empty, defaultOperation);
-        }
-
-        public IQuery CreateSearchCriteria(string category, BooleanOperation defaultOperation)
-        {
-            return this.DefaultSearchProvider.CreateSearchCriteria(category, defaultOperation);
+            return this.DefaultSearchProvider.CreateSearchCriteria();
         }
 
         #endregion

@@ -18,13 +18,6 @@ namespace Examine.SearchCriteria
         /// <param name="query">The query.</param>
         /// <returns></returns>
         IBooleanOperation RawQuery(string query);
-
-        /// <summary>
-        /// Gets the boolean operation which this query method will be added as
-        /// </summary>
-        /// <value>The boolean operation.</value>
-        BooleanOperation BooleanOperation { get; }
-
         /// <summary>
         /// Query on the id
         /// </summary>

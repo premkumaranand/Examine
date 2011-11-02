@@ -990,7 +990,7 @@ namespace Examine.LuceneEngine.Providers
                     {
                         case IndexOperationType.Add:
                             //check if it is already in our index
-                            var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Id(item.Item.Id).Compile());
+                            var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Must().Id(item.Item.Id).Compile());
                             //if one is found, then delete it from the main index before the fast index is merged in
                             if (idResult.Any())
                             {

@@ -6,6 +6,9 @@ using Lucene.Net.Search;
 
 namespace Examine.LuceneEngine.SearchCriteria
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class LuceneQuery : IQuery
     {
         private readonly LuceneSearchCriteria _search;
@@ -26,16 +29,6 @@ namespace Examine.LuceneEngine.SearchCriteria
         {
             return this._search.RawQuery(query);
         }
-
-        /// <summary>
-        /// Gets the boolean operation which this query method will be added as
-        /// </summary>
-        /// <value>The boolean operation.</value>
-        public BooleanOperation BooleanOperation
-        {
-            get { return _occurance.ToBooleanOperation(); }
-        }
-
 
         #region ISearch Members
 
@@ -268,7 +261,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
         public IBooleanOperation GroupedAnd(IEnumerable<string> fields, params IExamineValue[] query)
         {
-            throw new NotImplementedException();
+            return this._search.GroupedAnd(fields, query);
         }
 
         /// <summary>

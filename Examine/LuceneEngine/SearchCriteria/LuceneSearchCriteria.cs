@@ -28,28 +28,15 @@ namespace Examine.LuceneEngine.SearchCriteria
         private readonly BooleanClause.Occur _occurance;
         private readonly Lucene.Net.Util.Version _luceneVersion = Lucene.Net.Util.Version.LUCENE_29;
 
-        internal LuceneSearchCriteria(Analyzer analyzer, string[] fields, bool allowLeadingWildcards, BooleanOperation occurance)
+        internal LuceneSearchCriteria(Analyzer analyzer, string[] fields, bool allowLeadingWildcards)
         {
             Enforcer.ArgumentNotNull(fields, "fields");
 
-            
             Fields = fields;
             Query = new BooleanQuery();
-            this.BooleanOperation = occurance;
             
             this.QueryParser = new MultiFieldQueryParser(_luceneVersion, fields, analyzer);
             this.QueryParser.SetAllowLeadingWildcard(allowLeadingWildcards);
-            this._occurance = occurance.ToLuceneOccurance();
-        }
-
-        /// <summary>
-        /// Gets the boolean operation which this query method will be added as
-        /// </summary>
-        /// <value>The boolean operation.</value>
-        public BooleanOperation BooleanOperation
-        {
-            get;
-            protected set;
         }
 
         ///// <summary>
@@ -639,8 +626,7 @@ namespace Examine.LuceneEngine.SearchCriteria
             var newCriteria = new LuceneSearchCriteria(
                 this.QueryParser.GetAnalyzer(), 
                 this.Fields, 
-                this.QueryParser.GetAllowLeadingWildcard(), 
-                this.BooleanOperation);
+                this.QueryParser.GetAllowLeadingWildcard());
             newCriteria.Query.Add(this.Query, BooleanClause.Occur.MUST);
             newCriteria.Query.Add(criteria.Query, BooleanClause.Occur.MUST);
             return newCriteria;

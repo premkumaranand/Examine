@@ -150,23 +150,23 @@ namespace Examine.LuceneEngine.Providers
         /// </remarks>
         /// <param name="searchText"></param>
         /// <param name="useWildcards"></param>
-        /// <param name="indexType"></param>
+        /// <param name="category"></param>
         /// <returns></returns>
-        public ISearchResults Search(string searchText, bool useWildcards, string indexType)
+        public ISearchResults Search(string searchText, bool useWildcards, string category)
         {
-            var sc = CreateSearchCriteria(indexType);
+            var sc = CreateSearchCriteria().Must().Field(LuceneIndexer.IndexCategoryFieldName, category.Escape());
 
             if (useWildcards)
             {
                 var wildcardSearch = new ExamineValue(Examineness.ComplexWildcard, searchText.MultipleCharacterWildcard().Value);
-                sc = sc.GroupedOr(GetSearchFields(), wildcardSearch).Compile();
+                sc = sc.Must().GroupedOr(GetSearchFields(), wildcardSearch);
             }
             else
             {
-                sc = sc.GroupedOr(GetSearchFields(), searchText).Compile();
+                sc = sc.Must().GroupedOr(GetSearchFields(), searchText);
             }
 
-            return Search(sc);
+            return Search(sc.Compile());
         }
 
         /// <summary>

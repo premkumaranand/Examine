@@ -22,7 +22,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// Sets the next operation to be AND
         /// </summary>
         /// <returns></returns>
-        public IQuery And()
+        public IQuery Must()
         {
             return new LuceneQuery(this._search, BooleanClause.Occur.MUST);
         }
@@ -31,7 +31,7 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// Sets the next operation to be OR
         /// </summary>
         /// <returns></returns>
-        public IQuery Or()
+        public IQuery Should()
         {
             return new LuceneQuery(this._search, BooleanClause.Occur.SHOULD);
         }

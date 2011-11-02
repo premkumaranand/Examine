@@ -57,8 +57,8 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Range("Field1", new DateTime(2010, 10, 10, 10, 10, 10), new DateTime(2010, 10, 10, 10, 10, 10)).Compile());
-            var results2 = searcher.Search(searcher.CreateSearchCriteria().Range("Field1", new DateTime(2010, 11, 10, 10, 10, 10), new DateTime(2010, 11, 10, 10, 10, 10)).Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Range("Field1", new DateTime(2010, 10, 10, 10, 10, 10), new DateTime(2010, 10, 10, 10, 10, 10)).Compile());
+            var results2 = searcher.Search(searcher.CreateSearchCriteria().Must().Range("Field1", new DateTime(2010, 11, 10, 10, 10, 10), new DateTime(2010, 11, 10, 10, 10, 10)).Compile());
 
             Assert.AreEqual(1, results.Count());
             Assert.AreEqual(0, results2.Count());
@@ -97,7 +97,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Range("Field1", 123456, 123456).Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Range("Field1", 123456, 123456).Compile());
 
             Assert.AreEqual(1, results.Count());
         }
@@ -134,7 +134,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test1").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Id("test1").Compile());
 
             Assert.AreEqual(0, results.Count());
 
@@ -164,7 +164,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello world").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Field("Field1", "hello world").Compile());
 
             Assert.AreEqual(1, results.Count());
 
@@ -220,7 +220,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Id("test").Compile());
 
             Assert.AreEqual(1, results.TotalItemCount);
         }
@@ -258,7 +258,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Id("test").Compile());
 
             Assert.AreEqual(1, results.TotalItemCount);
         }
@@ -287,7 +287,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test1").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Id("test1").Compile());
 
             Assert.IsFalse(results.First().Fields.ContainsKey("Field1"));
         }
@@ -316,7 +316,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Id("test1").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Id("test1").Compile());
 
             Assert.AreEqual(1, results.TotalItemCount);
         }
@@ -344,7 +344,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello world").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Field("Field1", "hello world").Compile());
 
             Assert.AreEqual(3, results.First().Fields.Count());
             Assert.AreEqual("test1", results.First().Fields[LuceneIndexer.IndexNodeIdFieldName]);
@@ -403,7 +403,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Field("Field1", "hello").Compile());
 
             Assert.AreEqual(80, results.Count());
         }
@@ -462,7 +462,7 @@ namespace Examine.Test.Index
             //assert
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Field("Field1", "hello").Compile());
 
             Assert.AreEqual(80, results.Count());
         }
@@ -502,7 +502,7 @@ namespace Examine.Test.Index
             totalCount = 0;
 
             var searcher = GetSearcher();
-            var results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
+            var results = searcher.Search(searcher.CreateSearchCriteria().Must().Field("Field1", "hello").Compile());
             Assert.AreEqual(5, results.Count());
 
             //now we want to re-index again 
@@ -526,7 +526,7 @@ namespace Examine.Test.Index
                 Thread.Sleep(1000);
             }
 
-            results = searcher.Search(searcher.CreateSearchCriteria().Field("Field1", "hello").Compile());
+            results = searcher.Search(searcher.CreateSearchCriteria().Must().Field("Field1", "hello").Compile());
             Assert.AreEqual(10, results.Count());
         }
 
