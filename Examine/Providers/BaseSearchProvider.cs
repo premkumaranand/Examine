@@ -28,27 +28,27 @@ namespace Examine.Providers
         /// </summary>
         /// <param name="searchParams">The fluent API search.</param>
         /// <returns></returns>
-        public abstract ISearchResults Search(ISearchCriteria searchParams);
+        public abstract ISearchResults Search(IQuery searchParams);
 
         /// <summary>
         /// Creates an instance of SearchCriteria for the provider
         /// </summary>
         /// <returns></returns>
-        public abstract ISearchCriteria CreateSearchCriteria();
+        public abstract IQuery CreateSearchCriteria();
 
         /// <summary>
         /// Creates an instance of SearchCriteria for the provider
         /// </summary>
         /// <param name="category">The type of data in the index.</param>
         /// <returns>A blank SearchCriteria</returns>
-        public abstract ISearchCriteria CreateSearchCriteria(string category);
+        public abstract IQuery CreateSearchCriteria(string category);
 
         ///<summary>
         /// Creates an instance of SearchCriteria for the provider
         ///</summary>
         ///<param name="defaultOperation"></param>
         ///<returns></returns>
-        public abstract ISearchCriteria CreateSearchCriteria(BooleanOperation defaultOperation);
+        public abstract IQuery CreateSearchCriteria(BooleanOperation defaultOperation);
 
         /// <summary>
         /// Creates an instance of SearchCriteria for the provider
@@ -56,7 +56,7 @@ namespace Examine.Providers
         /// <param name="category">The type of data in the index.</param>
         /// <param name="defaultOperation">The default operation.</param>
         /// <returns>A blank SearchCriteria</returns>
-        public abstract ISearchCriteria CreateSearchCriteria(string category, BooleanOperation defaultOperation);
+        public abstract IQuery CreateSearchCriteria(string category, BooleanOperation defaultOperation);
 
         #endregion
 

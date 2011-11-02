@@ -98,9 +98,9 @@ namespace Examine.LuceneEngine.Providers
         /// <param name="category">The type of data in the index.</param>
         /// <param name="defaultOperation">The default operation.</param>
         /// <returns>A blank SearchCriteria</returns>
-        public override ISearchCriteria CreateSearchCriteria(string category, BooleanOperation defaultOperation)
+        public override IQuery CreateSearchCriteria(string category, BooleanOperation defaultOperation)
         {
-            return new LuceneSearchCriteria(category, IndexingAnalyzer, GetSearchFields(), EnableLeadingWildcards, defaultOperation);
+            return new LuceneSearchCriteria(IndexingAnalyzer, GetSearchFields(), EnableLeadingWildcards, defaultOperation);
         }
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         /// <param name="searchParams"></param>
         /// <returns></returns>
-        public override ISearchResults Search(ISearchCriteria searchParams)
+        public override ISearchResults Search(IQuery searchParams)
         {
             var searcher = GetSearcher();
 
@@ -149,7 +149,7 @@ namespace Examine.LuceneEngine.Providers
         /// Creates search criteria that defaults to IndexType.Any and BooleanOperation.And
         /// </summary>
         /// <returns></returns>
-        public override ISearchCriteria CreateSearchCriteria()
+        public override IQuery CreateSearchCriteria()
         {
             return CreateSearchCriteria(string.Empty, BooleanOperation.And);
         }
@@ -157,12 +157,12 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Creates an instance of SearchCriteria for the provider
         /// </summary>
-        public override ISearchCriteria CreateSearchCriteria(string category)
+        public override IQuery CreateSearchCriteria(string category)
         {
             return CreateSearchCriteria(category, BooleanOperation.And);
         }
 
-        public override ISearchCriteria CreateSearchCriteria(BooleanOperation defaultOperation)
+        public override IQuery CreateSearchCriteria(BooleanOperation defaultOperation)
         {
             return CreateSearchCriteria(string.Empty, defaultOperation);
         }

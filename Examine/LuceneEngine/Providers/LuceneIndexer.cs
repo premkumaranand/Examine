@@ -919,7 +919,7 @@ namespace Examine.LuceneEngine.Providers
                         {
                             if (!_isIndexing && (_asyncTask == null || _asyncTask.IsCompleted))
                             {
-                                Debug.WriteLine("Examine: Launching task");
+                                //Debug.WriteLine("Examine: Launching task");
                                 _asyncTask = Task.Factory.StartNew(StartIndexing, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                             }
                         }
@@ -967,7 +967,7 @@ namespace Examine.LuceneEngine.Providers
             IndexWriter inMemoryWriter = null;
             IndexWriter realWriter = null;
 
-            Debug.WriteLine("Examine: Processing queue (thread id: " + Thread.CurrentThread.ManagedThreadId + ")");
+            //Debug.WriteLine("Examine: Processing queue (thread id: " + Thread.CurrentThread.ManagedThreadId + ")");
 
             //track all of the nodes indexed
             var indexedNodes = new ConcurrentBag<IndexItem>();
@@ -984,7 +984,7 @@ namespace Examine.LuceneEngine.Providers
                 IndexOperation item;
                 while (buffer.TryDequeue(out item))
                 {
-                    Debug.WriteLine("Examine: Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
+                    //Debug.WriteLine("Examine: Indexing : " + item.Item.Id + " op = " + item.Operation.ToString());
 
                     switch (item.Operation)
                     {
@@ -1033,7 +1033,7 @@ namespace Examine.LuceneEngine.Providers
                 CloseWriter(ref realWriter);                
             }
 
-            Debug.WriteLine("Examine: Finished processing queue (task id: " + Thread.CurrentThread.ManagedThreadId + ") Nodes indexed = " + indexedNodes.Count);
+            //Debug.WriteLine("Examine: Finished processing queue (task id: " + Thread.CurrentThread.ManagedThreadId + ") Nodes indexed = " + indexedNodes.Count);
 
             return indexedNodes.Count;
 
@@ -1120,8 +1120,8 @@ namespace Examine.LuceneEngine.Providers
                 {
                     if (!_isIndexing)
                     {
-                        Debug.WriteLine("Examine: Start indexing (thread id: " + Thread.CurrentThread.ManagedThreadId + ")");
-                        Debug.Flush();
+                        //Debug.WriteLine("Examine: Start indexing (thread id: " + Thread.CurrentThread.ManagedThreadId + ")");
+                        //Debug.Flush();
 
                         _isIndexing = true;
 

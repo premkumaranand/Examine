@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using Examine;
@@ -17,22 +18,25 @@ namespace Examine.LuceneEngine.SearchCriteria
     /// <summary>
     /// This class is used to query against Lucene.Net
     /// </summary>
-    public class LuceneSearchCriteria : ISearchCriteria
+    [DebuggerDisplay("LuceneQuery: {Query}")]
+    public class LuceneSearchCriteria : IQuery
     {
-        internal MultiFieldQueryParser QueryParser;
-        internal BooleanQuery Query;
+        internal MultiFieldQueryParser QueryParser { get; set; }
+        internal BooleanQuery Query { get; set; }
         internal List<SortField> SortFields = new List<SortField>();
+        internal string[] Fields { get; set; }
         private readonly BooleanClause.Occur _occurance;
         private readonly Lucene.Net.Util.Version _luceneVersion = Lucene.Net.Util.Version.LUCENE_29;
 
-        internal LuceneSearchCriteria(string category, Analyzer analyzer, string[] fields, bool allowLeadingWildcards, BooleanOperation occurance, string indexCategoryFieldName = LuceneIndexer.IndexCategoryFieldName)
+        internal LuceneSearchCriteria(Analyzer analyzer, string[] fields, bool allowLeadingWildcards, BooleanOperation occurance)
         {
             Enforcer.ArgumentNotNull(fields, "fields");
 
-            SearchCategory = category;
+            
+            Fields = fields;
             Query = new BooleanQuery();
             this.BooleanOperation = occurance;
-            IndexCategoryFieldName = indexCategoryFieldName;
+            
             this.QueryParser = new MultiFieldQueryParser(_luceneVersion, fields, analyzer);
             this.QueryParser.SetAllowLeadingWildcard(allowLeadingWildcards);
             this._occurance = occurance.ToLuceneOccurance();
@@ -48,10 +52,10 @@ namespace Examine.LuceneEngine.SearchCriteria
             protected set;
         }
 
-        /// <summary>
-        /// The category field name used when compiling the query
-        /// </summary>
-        public string IndexCategoryFieldName { get; protected set; }
+        ///// <summary>
+        ///// The category field name used when compiling the query
+        ///// </summary>
+        //public string IndexCategoryFieldName { get; protected set; }
 
         /// <summary>
         /// Returns a <see cref="System.String"/> that represents this instance.
@@ -61,16 +65,18 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// </returns>
         public override string ToString()
         {
-            return string.Format("{{ SearchCategory: {0}, LuceneQuery: {1} }}", this.SearchCategory, this.Query.ToString());
+            return this.Query.ToString();
         }
 
         #region ISearchCriteria Members
 
-        public string SearchCategory
-        {
-            get;
-            protected set;
-        }
+        //public string SearchCategory
+        //{
+        //    get;
+        //    protected set;
+        //}
+
+        
 
         public bool IncludeHitCount
         {
@@ -617,10 +623,27 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// </summary>
         /// <param name="query">The query.</param>
         /// <returns>A new <see cref="Examine.SearchCriteria.IBooleanOperation"/> with the clause appended</returns>
-        public ISearchCriteria RawQuery(string query)
+        public IBooleanOperation RawQuery(string query)
         {
             this.Query.Add(ParseRawQuery(query), this._occurance);
-            return this;
+            return new LuceneBooleanOperation(this);
+        }
+
+        /// <summary>
+        /// Joins the specified criteria.
+        /// </summary>
+        /// <param name="criteria">The criteria.</param>
+        /// <returns></returns>
+        public IQuery Join(LuceneSearchCriteria criteria)
+        {
+            var newCriteria = new LuceneSearchCriteria(
+                this.QueryParser.GetAnalyzer(), 
+                this.Fields, 
+                this.QueryParser.GetAllowLeadingWildcard(), 
+                this.BooleanOperation);
+            newCriteria.Query.Add(this.Query, BooleanClause.Occur.MUST);
+            newCriteria.Query.Add(criteria.Query, BooleanClause.Occur.MUST);
+            return newCriteria;
         }
 
         /// <summary>
@@ -665,24 +688,5 @@ namespace Examine.LuceneEngine.SearchCriteria
 
         #endregion
 
-        public IQuery And()
-        {
-            return new LuceneQuery(this, BooleanClause.Occur.MUST);
-        }
-
-        public IQuery Or()
-        {
-            return new LuceneQuery(this, BooleanClause.Occur.SHOULD);
-        }
-
-        public IQuery Not()
-        {
-            return new LuceneQuery(this, BooleanClause.Occur.MUST_NOT);
-        }
-
-        public ISearchCriteria Compile()
-        {
-            return this;
-        }
     }
 }

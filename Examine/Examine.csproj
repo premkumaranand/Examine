@@ -133,7 +133,6 @@
     <Compile Include="SearchCriteria\DateResolution.cs" />
     <Compile Include="SearchCriteria\IBooleanOperation.cs" />
     <Compile Include="SearchCriteria\IQuery.cs" />
-    <Compile Include="SearchCriteria\ISearchCriteria.cs" />
     <Compile Include="ISearcher.cs" />
     <Compile Include="ExamineManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

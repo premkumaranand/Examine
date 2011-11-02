@@ -144,7 +144,7 @@ namespace Examine
         /// <param name="searchParameters"></param>
         /// <returns></returns>
         /// <remarks>This is just a wrapper for the default provider</remarks>
-        public ISearchResults Search(ISearchCriteria searchParameters)
+        public ISearchResults Search(IQuery searchParameters)
         {
             return DefaultSearchProvider.Search(searchParameters);
         }
@@ -164,22 +164,22 @@ namespace Examine
         /// Creates search criteria that defaults to IndexType.Any and BooleanOperation.And
         /// </summary>
         /// <returns></returns>
-        public ISearchCriteria CreateSearchCriteria()
+        public IQuery CreateSearchCriteria()
         {
             return this.CreateSearchCriteria(string.Empty, BooleanOperation.And);
         }
 
-        public ISearchCriteria CreateSearchCriteria(string category)
+        public IQuery CreateSearchCriteria(string category)
         {
             return this.CreateSearchCriteria(category, BooleanOperation.And);
         }
 
-        public ISearchCriteria CreateSearchCriteria(BooleanOperation defaultOperation)
+        public IQuery CreateSearchCriteria(BooleanOperation defaultOperation)
         {
             return this.CreateSearchCriteria(string.Empty, defaultOperation);
         }
 
-        public ISearchCriteria CreateSearchCriteria(string category, BooleanOperation defaultOperation)
+        public IQuery CreateSearchCriteria(string category, BooleanOperation defaultOperation)
         {
             return this.DefaultSearchProvider.CreateSearchCriteria(category, defaultOperation);
         }

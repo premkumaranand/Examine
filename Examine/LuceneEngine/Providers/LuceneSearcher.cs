@@ -174,7 +174,7 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         /// <param name="searchParams">The fluent API search.</param>
         /// <returns></returns>
-        public override ISearchResults Search(ISearchCriteria searchParams)
+        public override ISearchResults Search(IQuery searchParams)
         {
             if (!IndexExists())
                 throw new DirectoryNotFoundException("The index does not exist. Ensure that an index has been created");

@@ -22,6 +22,11 @@ namespace Examine.LuceneEngine.SearchCriteria
             this._occurance = occurance;
         }
 
+        public IBooleanOperation RawQuery(string query)
+        {
+            return this._search.RawQuery(query);
+        }
+
         /// <summary>
         /// Gets the boolean operation which this query method will be added as
         /// </summary>

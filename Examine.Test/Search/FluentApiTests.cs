@@ -68,6 +68,20 @@ namespace Examine.Test.Search
         }
 
         [TestMethod]
+        public void FluentApi_Join_Search_Criteria_Instances()
+        {
+            var searcher = GetSearcher();
+            var criteria1 = (LuceneSearchCriteria)searcher.CreateSearchCriteria().Field("nodeTypeAlias", "cws_home".Escape()).Compile();
+            var criteria2 = (LuceneSearchCriteria)searcher.CreateSearchCriteria().Field("writerName", "administrator".Escape()).Compile();
+
+            var combined = criteria1.Join(criteria2);
+
+            var results = searcher.Search(combined);
+
+            Assert.AreEqual(1, results.TotalItemCount);
+        }
+
+        [TestMethod]
         public void FluentApi_Search_With_Stop_Words()
         {
             var searcher = GetSearcher();
@@ -88,7 +102,7 @@ namespace Examine.Test.Search
 
             var filter = criteria.RawQuery("nodeTypeAlias:cws_home");
             Console.WriteLine(filter.ToString());
-            var results = searcher.Search(filter);
+            var results = searcher.Search(filter.Compile());
 
             Assert.IsTrue(results.TotalItemCount > 0);
         }
@@ -97,15 +111,12 @@ namespace Examine.Test.Search
         public void FluentApi_Find_By_Field()
         {
             var searcher = GetSearcher();
-            //var criteria = searcher.CreateSearchCriteria("content");
-            //NOTE: we manually construct this so we can set a custom category field so that it works with our test index
+
             var criteria = new LuceneSearchCriteria(
-                "content",
                 searcher.IndexingAnalyzer,
                 searcher.GetSearchFields(),
                 false,
-                BooleanOperation.And,
-                "__IndexType");
+                BooleanOperation.And);
 
             var filter = criteria.Field("nodeTypeAlias", "cws_home".Escape()).Compile();
             Console.WriteLine(filter.ToString());

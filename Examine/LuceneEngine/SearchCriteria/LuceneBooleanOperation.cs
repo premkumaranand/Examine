@@ -49,20 +49,20 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// Compiles this instance for fluent API conclusion
         /// </summary>
         /// <returns></returns>
-        public ISearchCriteria Compile()
+        public IQuery Compile()
         {
-            if (!string.IsNullOrEmpty(this._search.SearchCategory))
-            {
-                var query = this._search.Query;
+            //if (!string.IsNullOrEmpty(this._search.SearchCategory))
+            //{
+            //    var query = this._search.Query;
 
-                this._search.Query = new BooleanQuery();
-                this._search.Query.Add(query, BooleanClause.Occur.MUST);
+            //    this._search.Query = new BooleanQuery();
+            //    this._search.Query.Add(query, BooleanClause.Occur.MUST);
 
-                //this.search.query.Add(this.search.queryParser.Parse("(" + query.ToString() + ")"), BooleanClause.Occur.MUST);
+            //    //this.search.query.Add(this.search.queryParser.Parse("(" + query.ToString() + ")"), BooleanClause.Occur.MUST);
 
-                this._search.FieldInternal(this._search.IndexCategoryFieldName, _search.SearchCategory.Escape(), BooleanClause.Occur.MUST);
-            }
-            
+            //    this._search.FieldInternal(this._search.IndexCategoryFieldName, _search.SearchCategory.Escape(), BooleanClause.Occur.MUST);
+            //}
+
             return this._search;
         }
 

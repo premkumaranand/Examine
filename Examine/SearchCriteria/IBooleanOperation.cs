@@ -26,6 +26,6 @@ namespace Examine.SearchCriteria
         /// Compiles this instance for fluent API conclusion
         /// </summary>
         /// <returns></returns>
-        ISearchCriteria Compile();
+        IQuery Compile();
     }
 }
