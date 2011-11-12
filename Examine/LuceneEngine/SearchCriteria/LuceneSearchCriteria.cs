@@ -321,8 +321,8 @@ namespace Examine.LuceneEngine.SearchCriteria
                     break;
                 case DateResolution.Millisecond:
                 default:
-                    startDateConverted = LuceneIndexer.DateTimeToMilliseconds(start);
-                    endDateConverted = LuceneIndexer.DateTimeToMilliseconds(end);
+                    startDateConverted = LuceneIndexer.DateTimeToTicks(start);
+                    endDateConverted = LuceneIndexer.DateTimeToTicks(end);
                     break;
             }
             //since lucene works on string's for all searching we need to flatten the date
@@ -621,14 +621,14 @@ namespace Examine.LuceneEngine.SearchCriteria
         /// </summary>
         /// <param name="criteria">The criteria.</param>
         /// <returns></returns>
-        public IQuery Join(LuceneSearchCriteria criteria)
+        public IQuery Join(LuceneSearchCriteria criteria, BooleanClause.Occur occurance)
         {
             var newCriteria = new LuceneSearchCriteria(
                 this.QueryParser.GetAnalyzer(), 
                 this.Fields, 
                 this.QueryParser.GetAllowLeadingWildcard());
-            newCriteria.Query.Add(this.Query, BooleanClause.Occur.MUST);
-            newCriteria.Query.Add(criteria.Query, BooleanClause.Occur.MUST);
+            newCriteria.Query.Add(this.Query, occurance);
+            newCriteria.Query.Add(criteria.Query, occurance);
             return newCriteria;
         }
 

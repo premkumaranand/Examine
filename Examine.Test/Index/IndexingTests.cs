@@ -62,7 +62,7 @@ namespace Examine.Test.Index
 
             Assert.AreEqual(1, results.Count());
             Assert.AreEqual(0, results2.Count());
-            Assert.AreEqual(new DateTime(2010, 10, 10, 10, 10, 10), LuceneIndexer.DateTimeFromMilliseconds(double.Parse(results.First().Fields["Field1"])));
+            Assert.AreEqual(new DateTime(2010, 10, 10, 10, 10, 10), LuceneIndexer.DateTimeFromTicks(long.Parse(results.First().Fields["Field1"])));
         }
 
         [TestMethod]

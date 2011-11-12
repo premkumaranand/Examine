@@ -74,7 +74,7 @@ namespace Examine.Test.Search
             var criteria1 = (LuceneSearchCriteria)searcher.CreateSearchCriteria().Must().Field("nodeTypeAlias", "cws_home".Escape()).Compile();
             var criteria2 = (LuceneSearchCriteria)searcher.CreateSearchCriteria().Must().Field("writerName", "administrator".Escape()).Compile();
 
-            var combined = criteria1.Join(criteria2);
+            var combined = criteria1.Join(criteria2, BooleanClause.Occur.MUST);
 
             var results = searcher.Search(combined);
 

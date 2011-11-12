@@ -249,9 +249,9 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         /// <param name="t">The t.</param>
         /// <returns></returns>
-        public static double DateTimeToMilliseconds(DateTime t)
+        public static long DateTimeToTicks(DateTime t)
         {
-            return (t - DateTime.MinValue).TotalMilliseconds;
+            return t.Ticks;
         }
 
         /// <summary>
@@ -297,11 +297,11 @@ namespace Examine.LuceneEngine.Providers
         /// <summary>
         /// Converts a number of milliseconds to a DateTime from DateTime.MinValue
         /// </summary>
-        /// <param name="milliseconds"></param>
+        /// <param name="ticks"></param>
         /// <returns></returns>
-        public static DateTime DateTimeFromMilliseconds(double milliseconds)
+        public static DateTime DateTimeFromTicks(long ticks)
         {
-            return DateTime.MinValue.AddMilliseconds(milliseconds);
+            return new DateTime(ticks);
         }
 
         /// <summary>
@@ -797,7 +797,7 @@ namespace Examine.LuceneEngine.Providers
                     case FieldDataType.DateTime:
                         if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
                             break;
-                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetDoubleValue(DateTimeToMilliseconds((DateTime)parsedVal));
+                        field = new NumericField(f.Key, Field.Store.YES, lucenePolicy != Field.Index.NO).SetLongValue(DateTimeToTicks((DateTime)parsedVal));
                         break;
                     case FieldDataType.DateDay:
                         if (!TryConvert<DateTime>(f.Value.FieldValue, out parsedVal))
