@@ -401,6 +401,9 @@ namespace Examine.LuceneEngine.Providers
         /// </summary>
         private volatile bool _isIndexing = false;
         
+        /// <summary>
+        /// The async task that runs during an async indexing operation
+        /// </summary>
         private Task _asyncTask;
 
         /// <summary>
@@ -579,7 +582,7 @@ namespace Examine.LuceneEngine.Providers
             {                
 
                 //check if the index exists and it's locked
-                if (IndexExists() && !IndexReady())
+                if (IndexExists() && forceOverwrite && !IndexReady())
                 {
                     OnIndexingError(new IndexingErrorEventArgs("Cannot create index, the index is currently locked", string.Empty, null));
                     return;
@@ -966,6 +969,7 @@ namespace Examine.LuceneEngine.Providers
 
             IndexWriter inMemoryWriter = null;
             IndexWriter realWriter = null;
+            LuceneSearcher inMemorySearcher = null;
 
             //Debug.WriteLine("Examine: Processing queue (thread id: " + Thread.CurrentThread.ManagedThreadId + ")");
 
@@ -976,6 +980,7 @@ namespace Examine.LuceneEngine.Providers
             {
                 inMemoryWriter = GetNewInMemoryWriter();
                 realWriter = GetIndexWriter();
+                inMemorySearcher =  new LuceneSearcher(IndexingAnalyzer, new RAMDirectory(LuceneDirectory));
 
                 //iterate through the items in the buffer, they should be in the exact order in which 
                 //they were added so shouldn't need to sort anything
@@ -990,7 +995,7 @@ namespace Examine.LuceneEngine.Providers
                     {
                         case IndexOperationType.Add:
                             //check if it is already in our index
-                            var idResult = InternalSearcher.Search(InternalSearcher.CreateSearchCriteria().Must().Id(item.Item.Id).Compile());
+                            var idResult = inMemorySearcher.Search(InternalSearcher.CreateSearchCriteria().Must().Id(item.Item.Id).Compile());
                             //if one is found, then delete it from the main index before the fast index is merged in
                             if (idResult.Any())
                             {
@@ -1029,6 +1034,10 @@ namespace Examine.LuceneEngine.Providers
             }
             finally
             {
+                if (inMemorySearcher != null)
+                {
+                    inMemorySearcher.GetSearcher().Close();
+                }
                 CloseWriter(ref inMemoryWriter);
                 CloseWriter(ref realWriter);                
             }
@@ -1155,7 +1164,7 @@ namespace Examine.LuceneEngine.Providers
         /// Returns a Lucene index writer        
         /// </summary>        
         /// <returns></returns>
-        private IndexWriter GetIndexWriter()
+        protected virtual IndexWriter GetIndexWriter()
         {
             return new IndexWriter(LuceneDirectory, IndexingAnalyzer, false, IndexWriter.MaxFieldLength.UNLIMITED);
         }
@@ -1164,7 +1173,7 @@ namespace Examine.LuceneEngine.Providers
         /// Creates a new in-memory index with a writer for it
         /// </summary>
         /// <returns></returns>
-        private IndexWriter GetNewInMemoryWriter()
+        protected IndexWriter GetNewInMemoryWriter()
         {
             return new IndexWriter(new RAMDirectory(), IndexingAnalyzer, true, IndexWriter.MaxFieldLength.UNLIMITED);
         }
