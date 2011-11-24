@@ -473,6 +473,11 @@ namespace Examine.LuceneEngine.Providers
         public event EventHandler IndexOptimized;
 
         /// <summary>
+        /// Fires once an index operation is completed
+        /// </summary>
+        public event EventHandler IndexOperationComplete;
+
+        /// <summary>
         /// Occurs when [document writing].
         /// </summary>
         public event EventHandler<DocumentWritingEventArgs> DocumentWriting;
@@ -531,6 +536,12 @@ namespace Examine.LuceneEngine.Providers
         {
             if (IndexOptimized != null)
                 IndexOptimized(this, e);
+        }
+
+        protected virtual void OnIndexOperationComplete(EventArgs e)
+        {
+            if (IndexOperationComplete != null)
+                IndexOperationComplete(this, e);
         }
 
         #endregion
@@ -1150,6 +1161,8 @@ namespace Examine.LuceneEngine.Providers
 
                         //reset the flag
                         _isIndexing = false;
+
+                        OnIndexOperationComplete(new EventArgs());
                     }
                 }
             }
