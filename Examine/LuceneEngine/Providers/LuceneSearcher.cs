@@ -68,7 +68,7 @@ namespace Examine.LuceneEngine.Providers
 		/// <summary>
 		/// Used as a singleton instance
 		/// </summary>
-		private IndexSearcher _searcher;
+        private volatile IndexSearcher _searcher;
 		private static readonly object Locker = new object();
 
 		/// <summary>
