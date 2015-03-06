@@ -26,6 +26,7 @@ namespace Examine.LuceneEngine
 
         public Lucene.Net.Store.Directory GetDirectory(DirectoryInfo dir)
         {
+            if (dir == null) throw new ArgumentNullException("dir");
             var resolved = _directories.GetOrAdd(dir.FullName, s => new SimpleFSDirectory(dir));
             return resolved;
         }

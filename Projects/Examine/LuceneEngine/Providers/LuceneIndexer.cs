@@ -1561,7 +1561,7 @@ namespace Examine.LuceneEngine.Providers
                 {
                     if (_writer == null)
                     {
-                        _writer = CreateIndexWriter();
+                        _writer = IndexWriterTracker.Current.GetWriter(GetLuceneDirectory(), s => CreateIndexWriter());
                     }
                 }
                 finally
